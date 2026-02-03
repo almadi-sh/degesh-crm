@@ -9,7 +9,7 @@ class InventoryOut(InventoryBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class InventoryUpdate(BaseModel):
     quantity_available: float | None = None
