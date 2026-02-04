@@ -3,7 +3,6 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from typing import List
 
 from app.models.contract import Contract
@@ -15,19 +14,10 @@ logger = logging.getLogger("uvicorn.access")
 
 STATUS_VALUES = {"Draft", "Confirmed", "Sent"}
 
-
-def _generate_contract_number(db: Session) -> str:
-    # Architecture decision: keep number generation server-side to guarantee consistency
-    # and avoid collisions when multiple clients create contracts simultaneously.
-    max_id = db.query(func.max(Contract.id)).scalar() or 0
-    today = date.today()
-    return f"№{max_id + 1}-{today:%m}-{today:%d}"
-
 @router.post("/", response_model=ContractOut)
 def create_contract(data: ContractCreate, db: Session = Depends(get_db)):
     contract = Contract(
         customer_id=data.customer_id,
-        contract_number=_generate_contract_number(db),
         contract_date=date.today(),
         status="Draft",
     )
@@ -41,13 +31,10 @@ def create_contract(data: ContractCreate, db: Session = Depends(get_db)):
 def list_contracts(
     db: Session = Depends(get_db),
     customer_id: int | None = Query(default=None),
-    contract_number: str | None = Query(default=None),
 ):
     query = db.query(Contract)
     if customer_id is not None:
         query = query.filter(Contract.customer_id == customer_id)
-    if contract_number:
-        query = query.filter(Contract.contract_number.ilike(f"%{contract_number}%"))
     return query.all()
 
 @router.get("/{contract_id}", response_model=ContractOut)
