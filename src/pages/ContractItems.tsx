@@ -37,6 +37,12 @@ interface PaymentRow {
   due_date: string;
 }
 
+interface LineItem {
+  product_id: number;
+  quantity: number;
+  price: number;
+}
+
 export default function ContractItems() {
   const { data: clients = [] } = useClients();
   const { data: products = [] } = useProducts();
@@ -55,6 +61,12 @@ export default function ContractItems() {
   const [formData, setFormData] = useState({
     customer_id: 0,
     contract_id: 0,
+    delivery_enabled: false,
+    delivery_terms: "",
+  });
+  const [lineItems, setLineItems] = useState<LineItem[]>([
+    { product_id: 0, quantity: 1, price: 0 },
+  ]);
     product_id: 0,
     quantity: 1,
     price: 0,
@@ -77,6 +89,10 @@ export default function ContractItems() {
     [contracts],
   );
 
+  const totalAmount = lineItems.reduce(
+    (sum, item) => sum + item.quantity * item.price,
+    0,
+  );
   const totalAmount = formData.quantity * formData.price;
   const totalPercent = paymentRows.reduce((sum, row) => sum + row.percent, 0);
   const percentTone =
@@ -99,10 +115,31 @@ export default function ContractItems() {
     setPaymentRows(paymentRows.filter((_, rowIndex) => rowIndex !== index));
   };
 
+  const addLineItem = () => {
+    setLineItems([...lineItems, { product_id: 0, quantity: 1, price: 0 }]);
+  };
+
+  const updateLineItem = (index: number, field: keyof LineItem, value: number) => {
+    setLineItems(
+      lineItems.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    );
+  };
+
+  const removeLineItem = (index: number) => {
+    if (lineItems.length === 1) return;
+    setLineItems(lineItems.filter((_, itemIndex) => itemIndex !== index));
+  };
+
   const resetForm = () => {
     setFormData({
       customer_id: 0,
       contract_id: 0,
+      delivery_enabled: false,
+      delivery_terms: "",
+    });
+    setLineItems([{ product_id: 0, quantity: 1, price: 0 }]);
       product_id: 0,
       quantity: 1,
       price: 0,
@@ -115,6 +152,24 @@ export default function ContractItems() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    for (const lineItem of lineItems) {
+      const createdItem = await createContractItem.mutateAsync({
+        contract_id: formData.contract_id,
+        product_id: lineItem.product_id,
+        quantity: lineItem.quantity,
+        price: lineItem.price,
+        delivery_enabled: formData.delivery_enabled,
+        delivery_terms: formData.delivery_enabled ? formData.delivery_terms : null,
+      });
+
+      if (splitPayment) {
+        for (const row of paymentRows) {
+          await createPaymentTerm.mutateAsync({
+            contract_item_id: createdItem.id,
+            percent: row.percent,
+            due_date: row.due_date,
+          });
+        }
     const createdItem = await createContractItem.mutateAsync({
       contract_id: formData.contract_id,
       product_id: formData.product_id,
@@ -141,6 +196,7 @@ export default function ContractItems() {
   const canSave =
     formData.customer_id &&
     formData.contract_id &&
+    lineItems.every((item) => item.product_id && item.quantity > 0 && item.price >= 0) &&
     formData.product_id &&
     formData.quantity > 0 &&
     formData.price >= 0 &&
@@ -214,6 +270,79 @@ export default function ContractItems() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="col-span-2 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Products *</Label>
+                      <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
+                        + Add item
+                      </Button>
+                    </div>
+                    {lineItems.map((item, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-3 items-end">
+                        <div className="col-span-6 space-y-2">
+                          <Label>Product</Label>
+                          <Select
+                            value={item.product_id ? String(item.product_id) : ""}
+                            onValueChange={(value) =>
+                              updateLineItem(index, "product_id", Number(value))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select product" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products.map((product) => (
+                                <SelectItem key={product.id} value={String(product.id)}>
+                                  {product.name} ({product.unit})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-3 space-y-2">
+                          <Label>Quantity</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={item.quantity}
+                            onChange={(event) =>
+                              updateLineItem(index, "quantity", Number(event.target.value))
+                            }
+                          />
+                        </div>
+                        <div className="col-span-3 space-y-2">
+                          <Label>Price</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.price}
+                            onChange={(event) =>
+                              updateLineItem(index, "price", Number(event.target.value))
+                            }
+                          />
+                        </div>
+                        <div className="col-span-12 flex justify-between text-xs text-muted-foreground">
+                          <span>
+                            Line total: {(item.quantity * item.price).toFixed(2)}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeLineItem(index)}
+                            disabled={lineItems.length === 1}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="space-y-2">
+                      <Label>Total amount</Label>
+                      <Input value={totalAmount.toFixed(2)} readOnly />
+                    </div>
                   <div className="space-y-2 col-span-2">
                     <Label>Product *</Label>
                     <Select
