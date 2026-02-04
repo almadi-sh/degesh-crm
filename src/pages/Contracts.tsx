@@ -171,7 +171,7 @@ export default function Contracts() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="date">Contract Date</Label>
+                    <Label htmlFor="date">Contract Date test</Label>
                     <Input
                       id="date"
                       type="date"
