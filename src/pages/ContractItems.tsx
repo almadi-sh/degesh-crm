@@ -67,6 +67,12 @@ export default function ContractItems() {
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { product_id: 0, quantity: 1, price: 0 },
   ]);
+    product_id: 0,
+    quantity: 1,
+    price: 0,
+    delivery_enabled: false,
+    delivery_terms: "",
+  });
   const [splitPayment, setSplitPayment] = useState(false);
   const [paymentRows, setPaymentRows] = useState<PaymentRow[]>([]);
 
@@ -87,6 +93,7 @@ export default function ContractItems() {
     (sum, item) => sum + item.quantity * item.price,
     0,
   );
+  const totalAmount = formData.quantity * formData.price;
   const totalPercent = paymentRows.reduce((sum, row) => sum + row.percent, 0);
   const percentTone =
     totalPercent > 100 ? "destructive" : totalPercent === 100 ? "default" : "secondary";
@@ -133,6 +140,12 @@ export default function ContractItems() {
       delivery_terms: "",
     });
     setLineItems([{ product_id: 0, quantity: 1, price: 0 }]);
+      product_id: 0,
+      quantity: 1,
+      price: 0,
+      delivery_enabled: false,
+      delivery_terms: "",
+    });
     setSplitPayment(false);
     setPaymentRows([]);
   };
@@ -157,6 +170,22 @@ export default function ContractItems() {
             due_date: row.due_date,
           });
         }
+    const createdItem = await createContractItem.mutateAsync({
+      contract_id: formData.contract_id,
+      product_id: formData.product_id,
+      quantity: formData.quantity,
+      price: formData.price,
+      delivery_enabled: formData.delivery_enabled,
+      delivery_terms: formData.delivery_enabled ? formData.delivery_terms : null,
+    });
+
+    if (splitPayment) {
+      for (const row of paymentRows) {
+        await createPaymentTerm.mutateAsync({
+          contract_item_id: createdItem.id,
+          percent: row.percent,
+          due_date: row.due_date,
+        });
       }
     }
 
@@ -168,6 +197,9 @@ export default function ContractItems() {
     formData.customer_id &&
     formData.contract_id &&
     lineItems.every((item) => item.product_id && item.quantity > 0 && item.price >= 0) &&
+    formData.product_id &&
+    formData.quantity > 0 &&
+    formData.price >= 0 &&
     (!splitPayment || (paymentRows.length > 0 && totalPercent <= 100));
 
   return (
@@ -311,6 +343,53 @@ export default function ContractItems() {
                       <Label>Total amount</Label>
                       <Input value={totalAmount.toFixed(2)} readOnly />
                     </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Product *</Label>
+                    <Select
+                      value={formData.product_id ? String(formData.product_id) : ""}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, product_id: Number(value) })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={String(product.id)}>
+                            {product.name} ({product.unit})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Quantity *</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={formData.quantity}
+                      onChange={(event) =>
+                        setFormData({ ...formData, quantity: Number(event.target.value) })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Price *</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(event) =>
+                        setFormData({ ...formData, price: Number(event.target.value) })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Total amount</Label>
+                    <Input value={totalAmount.toFixed(2)} readOnly />
                   </div>
                 </div>
 
