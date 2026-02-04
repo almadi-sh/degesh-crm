@@ -62,7 +62,7 @@ export default function ContractItems() {
     customer_id: 0,
     contract_id: 0,
     delivery_enabled: false,
-    delivery_terms: "",
+    delivery_terms: ""
   });
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { product_id: 0, quantity: 1, price: 0 },
