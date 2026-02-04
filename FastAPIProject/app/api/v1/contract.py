@@ -1,66 +1,53 @@
+from datetime import date
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
+
 from app.models.contract import Contract
-from app.models.contract_item import ContractItem
-from app.models.inventory import Inventory
 from app.schemas.contract import ContractCreate, ContractOut, ContractUpdate
 from app.api.deps import get_db
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
+logger = logging.getLogger("uvicorn.access")
+
+STATUS_VALUES = {"Draft", "Confirmed", "Sent"}
+
+
+def _generate_contract_number(db: Session) -> str:
+    # Architecture decision: keep number generation server-side to guarantee consistency
+    # and avoid collisions when multiple clients create contracts simultaneously.
+    max_id = db.query(func.max(Contract.id)).scalar() or 0
+    today = date.today()
+    return f"№{max_id + 1}-{today:%m}-{today:%d}"
 
 @router.post("/", response_model=ContractOut)
 def create_contract(data: ContractCreate, db: Session = Depends(get_db)):
     contract = Contract(
         customer_id=data.customer_id,
-        number=data.number,
-        date=data.date
+        contract_number=_generate_contract_number(db),
+        contract_date=date.today(),
+        status="Draft",
     )
     db.add(contract)
     db.commit()
     db.refresh(contract)
-
-    contract_items = []
-
-    for item in data.items:
-        inv = db.query(Inventory).filter(Inventory.product_id == item.product_id).first()
-        if not inv or inv.quantity_available < item.quantity:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Not enough inventory for product_id {item.product_id}"
-            )
-
-        inv.quantity_available -= item.quantity
-        inv.quantity_reserved += item.quantity
-        db.add(inv)
-
-        contract_item = ContractItem(
-            contract_id=contract.id,
-            product_id=item.product_id,
-            quantity=item.quantity,
-            price=item.price,
-            total=item.quantity * item.price,
-            payment_terms=item.payment_terms,
-            delivery_terms=item.delivery_terms
-        )
-        db.add(contract_item)
-        contract_items.append(contract_item)
-
-    db.commit()
-    contract.items = contract_items
+    logger.info("POST /contracts -> %s", contract.id)
     return contract
 
 @router.get("/", response_model=List[ContractOut])
 def list_contracts(
     db: Session = Depends(get_db),
     customer_id: int | None = Query(default=None),
-    number: str | None = Query(default=None),
+    contract_number: str | None = Query(default=None),
 ):
     query = db.query(Contract)
     if customer_id is not None:
         query = query.filter(Contract.customer_id == customer_id)
-    if number:
-        query = query.filter(Contract.number.ilike(f"%{number}%"))
+    if contract_number:
+        query = query.filter(Contract.contract_number.ilike(f"%{contract_number}%"))
     return query.all()
 
 @router.get("/{contract_id}", response_model=ContractOut)
@@ -79,19 +66,10 @@ def update_contract(
     contract = db.query(Contract).filter(Contract.id == contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found")
-    update_data = data.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(contract, key, value)
+    if data.status not in STATUS_VALUES:
+        raise HTTPException(status_code=400, detail="Invalid status value")
+    contract.status = data.status
     db.commit()
     db.refresh(contract)
+    logger.info("PUT /contracts/%s", contract_id)
     return contract
-
-@router.delete("/{contract_id}", status_code=204)
-def delete_contract(contract_id: int, db: Session = Depends(get_db)):
-    contract = db.query(Contract).filter(Contract.id == contract_id).first()
-    if not contract:
-        raise HTTPException(status_code=404, detail="Contract not found")
-
-    db.query(ContractItem).filter(ContractItem.contract_id == contract_id).delete()
-    db.delete(contract)
-    db.commit()

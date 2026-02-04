@@ -11,6 +11,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Customers", href: "/clients", icon: Users },
   { name: "Contracts", href: "/contracts", icon: FileText },
+  { name: "Contract Items", href: "/contract-items", icon: FileText },
 ];
 
 export function Sidebar() {
