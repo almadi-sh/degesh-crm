@@ -1,27 +1,20 @@
 from pydantic import BaseModel
-from typing import List, Optional
-from datetime import date
+from typing import List, Literal
+from datetime import date, datetime
 from app.schemas.contract_item import ContractItemOut
 
 class ContractBase(BaseModel):
     customer_id: int
-    number: str
-    date: Optional[date] = None
+    contract_number: str
+    contract_date: date
+    status: Literal["Draft", "Confirmed", "Sent"]
+    last_modified_at: datetime
 
-class ContractItemForCreate(BaseModel):
-    product_id: int
-    quantity: float
-    price: float
-    payment_terms: Optional[str] = None
-    delivery_terms: Optional[str] = None
-
-class ContractCreate(ContractBase):
-    items: List[ContractItemForCreate]
+class ContractCreate(BaseModel):
+    customer_id: int
 
 class ContractUpdate(BaseModel):
-    customer_id: Optional[int] = None
-    number: Optional[str] = None
-    date: Optional[date] = None
+    status: Literal["Draft", "Confirmed", "Sent"]
 
 class ContractOut(ContractBase):
     id: int

@@ -18,13 +18,13 @@ export default function Dashboard() {
 
   const recentActivities = [
     ...contracts
-      .filter((contract) => contract.date)
+      .filter((contract) => contract.contract_date)
       .slice(0, 4)
       .map((contract) => ({
         id: String(contract.id),
         type: "contract" as const,
-        description: `Contract ${contract.number} signed`,
-        timestamp: new Date(contract.date ?? new Date().toISOString()),
+        description: `Contract ${contract.contract_number} updated`,
+        timestamp: new Date(contract.contract_date ?? new Date().toISOString()),
       })),
     ...clients.slice(0, 2).map((client) => ({
       id: String(client.id),
