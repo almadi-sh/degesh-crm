@@ -7,32 +7,30 @@ export interface ContractItem {
   product_id: number;
   quantity: number;
   price: number;
-  total: number;
-  payment_terms?: string | null;
+  total_amount: number;
+  delivery_enabled: boolean;
   delivery_terms?: string | null;
 }
 
 export interface Contract {
   id: number;
   customer_id: number;
-  number: string;
-  date?: string | null;
+  contract_number: string;
+  contract_date: string;
+  status: "Draft" | "Confirmed" | "Sent";
+  last_modified_at: string;
   items: ContractItem[];
 }
 
-export type ContractItemInsert = Omit<ContractItem, "id" | "total">;
 export interface ContractInsert {
   customer_id: number;
-  number: string;
-  date?: string | null;
-  items: ContractItemInsert[];
 }
 
-export type ContractUpdate = Partial<Omit<ContractInsert, "items">>;
+export type ContractUpdate = { status: "Draft" | "Confirmed" | "Sent" };
 
 export interface ContractFilters {
   customer_id?: number;
-  number?: string;
+  contract_number?: string;
 }
 
 export function useContracts(filters?: ContractFilters) {
@@ -41,7 +39,7 @@ export function useContracts(filters?: ContractFilters) {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.customer_id) params.set("customer_id", String(filters.customer_id));
-      if (filters?.number) params.set("number", filters.number);
+      if (filters?.contract_number) params.set("contract_number", filters.contract_number);
       const query = params.toString();
       return apiFetch<Contract[]>(`/api/v1/contracts${query ? `?${query}` : ""}`);
     },
@@ -77,25 +75,6 @@ export function useCreateContract() {
     },
     onError: (error) => {
       toast.error("Failed to create contract: " + error.message);
-    },
-  });
-}
-
-export function useDeleteContract() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: number) => {
-      return apiFetch<void>(`/api/v1/contracts/${id}`, {
-        method: "DELETE",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contracts"] });
-      toast.success("Contract deleted successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to delete contract: " + error.message);
     },
   });
 }
