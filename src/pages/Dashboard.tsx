@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
@@ -6,6 +7,7 @@ import { useClients } from "@/hooks/useClients";
 import { useContracts } from "@/hooks/useContracts";
 import { useProducts } from "@/hooks/useProducts";
 import { useInventory } from "@/hooks/useInventory";
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
 export default function Dashboard() {
@@ -13,6 +15,7 @@ export default function Dashboard() {
   const { data: contracts = [] } = useContracts();
   const { data: products = [] } = useProducts();
   const { data: inventory = [] } = useInventory();
+  const [showFullInventory, setShowFullInventory] = useState(false);
 
   const totalInventory = inventory.reduce((sum, item) => sum + item.quantity_available, 0);
 
@@ -89,16 +92,21 @@ export default function Dashboard() {
             <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-foreground">Inventory Snapshot</h3>
-                <Link to="/contracts" className="text-sm text-primary hover:underline">
-                  View contracts
-                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFullInventory((prev) => !prev)}
+                  className="text-primary hover:text-primary"
+                >
+                  {showFullInventory ? "Show less" : "View all inventory"}
+                </Button>
               </div>
               
               {products.length === 0 ? (
                 <p className="text-muted-foreground text-sm">No products added yet</p>
               ) : (
                 <div className="space-y-3">
-                  {products.slice(0, 5).map((product) => {
+                  {(showFullInventory ? products : products.slice(0, 5)).map((product) => {
                     const stock = inventoryByProductId.get(product.id);
                     return (
                       <div key={product.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
