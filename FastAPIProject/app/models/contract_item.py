@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, Float, String, Boolean
+from sqlalchemy import Column, Integer, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -11,9 +11,6 @@ class ContractItem(Base):
     quantity = Column(Float, nullable=False)
     price = Column(Float, nullable=False)
     total_amount = Column(Float, nullable=False)
-    vat_enabled = Column(Boolean, nullable=False, default=False)
-    delivery_enabled = Column(Boolean, nullable=False, default=False)
-    delivery_terms = Column(String, nullable=True)
 
     contract = relationship("Contract", back_populates="items")
     product = relationship("Product")
