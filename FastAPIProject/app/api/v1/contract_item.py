@@ -12,6 +12,12 @@ from app.schemas.contract_item import ContractItemCreate, ContractItemOut, Contr
 
 router = APIRouter(prefix="/contract-items", tags=["Contract Items"])
 logger = logging.getLogger("uvicorn.access")
+VAT_RATE = 0.16
+
+
+def _calculate_total_amount(quantity: float, price: float, vat_enabled: bool) -> float:
+    multiplier = 1 + VAT_RATE if vat_enabled else 1
+    return quantity * price * multiplier
 
 
 def _reserve_inventory(db: Session, product_id: int, quantity: float) -> None:
@@ -42,7 +48,7 @@ def create_contract_item(data: ContractItemCreate, db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail="Contract items can only be added in Draft status")
 
     _reserve_inventory(db, data.product_id, data.quantity)
-    total_amount = data.quantity * data.price
+    total_amount = _calculate_total_amount(data.quantity, data.price, data.vat_enabled)
 
     contract_item = ContractItem(
         contract_id=data.contract_id,
@@ -105,8 +111,12 @@ def update_contract_item(
     for key, value in update_data.items():
         setattr(contract_item, key, value)
 
-    if "quantity" in update_data or "price" in update_data:
-        contract_item.total_amount = contract_item.quantity * contract_item.price
+    if "quantity" in update_data or "price" in update_data or "vat_enabled" in update_data:
+        contract_item.total_amount = _calculate_total_amount(
+            contract_item.quantity,
+            contract_item.price,
+            contract_item.vat_enabled,
+        )
 
     db.commit()
     db.refresh(contract_item)
