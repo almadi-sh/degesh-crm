@@ -63,6 +63,7 @@ def update_contract(
 
 
 @router.delete("/{contract_id}", status_code=204)
+@router.delete("/{contract_id}/", status_code=204, include_in_schema=False)
 def delete_contract(contract_id: int, db: Session = Depends(get_db)):
     contract = db.query(Contract).filter(Contract.id == contract_id).first()
     if not contract:

@@ -376,7 +376,7 @@ export default function ContractItems() {
                     <Checkbox
                       checked={newItem.vat_enabled}
                       onCheckedChange={(checked) =>
-                        setNewItem({ ...newItem, vat_enabled: Boolean(checked) })
+                        setNewItem((prev) => ({ ...prev, vat_enabled: checked === true }))
                       }
                       id="vat-enabled"
                     />
@@ -487,7 +487,7 @@ export default function ContractItems() {
                               <Checkbox
                                 checked={edited.vat_enabled}
                                 onCheckedChange={(checked) =>
-                                  updateEditedItem(item.id, "vat_enabled", Boolean(checked))
+                                  updateEditedItem(item.id, "vat_enabled", checked === true)
                                 }
                               />
                             </TableCell>
