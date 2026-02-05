@@ -11,6 +11,7 @@ class ContractItem(Base):
     quantity = Column(Float, nullable=False)
     price = Column(Float, nullable=False)
     total_amount = Column(Float, nullable=False)
+    vat_enabled = Column(Boolean, nullable=False, default=False)
     delivery_enabled = Column(Boolean, nullable=False, default=False)
     delivery_terms = Column(String, nullable=True)
 
