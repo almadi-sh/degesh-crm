@@ -9,6 +9,7 @@ export interface ContractItem {
   quantity: number;
   price: number;
   total_amount: number;
+  vat_enabled: boolean;
   delivery_enabled: boolean;
   delivery_terms?: string | null;
 }
@@ -18,6 +19,7 @@ export interface ContractItemInsert {
   product_id: number;
   quantity: number;
   price: number;
+  vat_enabled: boolean;
   delivery_enabled: boolean;
   delivery_terms?: string | null;
 }

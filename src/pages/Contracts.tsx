@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { useContracts, useCreateContract, useUpdateContract, ContractInsert } from "@/hooks/useContracts";
+import {
+  useContracts,
+  useCreateContract,
+  useUpdateContract,
+  useDeleteContract,
+  ContractInsert,
+} from "@/hooks/useContracts";
 import { useClients } from "@/hooks/useClients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText } from "lucide-react";
+import { Plus, Search, FileText, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 export default function Contracts() {
@@ -30,6 +36,7 @@ export default function Contracts() {
   const { data: clients = [] } = useClients();
   const createContract = useCreateContract();
   const updateContract = useUpdateContract();
+  const deleteContract = useDeleteContract();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState<ContractInsert>({
@@ -59,6 +66,11 @@ export default function Contracts() {
   };
   const handleStatusChange = async (id: number, status: "Draft" | "Confirmed" | "Sent") => {
     await updateContract.mutateAsync({ id, status });
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Delete this contract? This will remove all contract items.")) return;
+    await deleteContract.mutateAsync(id);
   };
 
   return (
@@ -145,6 +157,7 @@ export default function Contracts() {
                   <TableHead>Status</TableHead>
                   <TableHead>Items</TableHead>
                   <TableHead>Total</TableHead>
+                  <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -209,6 +222,16 @@ export default function Contracts() {
                       {contract.items
                         .reduce((sum, item) => sum + (item.total_amount ?? item.price * item.quantity), 0)
                         .toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(contract.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -8,6 +8,7 @@ export interface ContractItem {
   quantity: number;
   price: number;
   total_amount: number;
+  vat_enabled: boolean;
   delivery_enabled: boolean;
   delivery_terms?: string | null;
 }
@@ -95,6 +96,25 @@ export function useUpdateContract() {
     },
     onError: (error) => {
       toast.error("Failed to update contract: " + error.message);
+    },
+  });
+}
+
+export function useDeleteContract() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      return apiFetch<void>(`/api/v1/contracts/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      toast.success("Contract deleted successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to delete contract: " + error.message);
     },
   });
 }

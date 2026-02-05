@@ -50,6 +50,7 @@ def create_contract_item(data: ContractItemCreate, db: Session = Depends(get_db)
         quantity=data.quantity,
         price=data.price,
         total_amount=total_amount,
+        vat_enabled=data.vat_enabled,
         delivery_enabled=data.delivery_enabled,
         delivery_terms=data.delivery_terms,
     )
