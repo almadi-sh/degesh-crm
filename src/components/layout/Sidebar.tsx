@@ -4,8 +4,11 @@ import {
   Users,
   FileText,
   Leaf,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -16,6 +19,7 @@ const navigation = [
 
 export function Sidebar() {
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar">
@@ -52,7 +56,23 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border space-y-3">
+          {user && (
+            <div className="rounded-lg bg-sidebar-accent p-4 space-y-2">
+              <p className="text-sm font-semibold text-sidebar-foreground">{user.name}</p>
+              <p className="text-xs text-sidebar-foreground/60">{user.email}</p>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="w-full justify-center gap-2"
+                onClick={logout}
+              >
+                <LogOut className="h-4 w-4" />
+                Выйти
+              </Button>
+            </div>
+          )}
           <div className="rounded-lg bg-sidebar-accent p-4">
             <p className="text-sm text-sidebar-foreground/80">
               Growing success together

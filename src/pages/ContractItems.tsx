@@ -30,6 +30,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { FileSpreadsheet, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { getContractOwnerMap, getOwnedContractIds } from "@/lib/contractOwnership";
 
 interface EditableItem {
   product_id: number;
@@ -45,6 +47,7 @@ const VAT_RATE = 0.16;
 export default function ContractItems() {
   const { data: clients = [] } = useClients();
   const { data: products = [] } = useProducts();
+  const { user } = useAuth();
   const [selectedCustomer, setSelectedCustomer] = useState<number | null>(null);
   const { data: contracts = [] } = useContracts(
     selectedCustomer ? { customer_id: selectedCustomer } : undefined,
@@ -67,26 +70,40 @@ export default function ContractItems() {
     delivery_terms: "",
   });
   const [editedItems, setEditedItems] = useState<Record<number, EditableItem>>({});
+  const [ownerMap] = useState(() => getContractOwnerMap());
+
+  const ownedContractIds = useMemo(
+    () => new Set(getOwnedContractIds(ownerMap, user?.id ?? "")),
+    [ownerMap, user?.id],
+  );
+  const ownedContracts = useMemo(
+    () => contracts.filter((contract) => ownedContractIds.has(contract.id)),
+    [contracts, ownedContractIds],
+  );
+  const ownedContractItems = useMemo(
+    () => contractItems.filter((item) => ownedContractIds.has(item.contract_id)),
+    [contractItems, ownedContractIds],
+  );
 
   const customersById = useMemo(
     () => new Map(clients.map((client) => [client.id, client])),
     [clients],
   );
   const contractsById = useMemo(
-    () => new Map(contracts.map((contract) => [contract.id, contract])),
-    [contracts],
+    () => new Map(ownedContracts.map((contract) => [contract.id, contract])),
+    [ownedContracts],
   );
 
   const itemsByContract = useMemo(() => {
-    const map = new Map<number, typeof contractItems>();
-    for (const item of contractItems) {
+    const map = new Map<number, typeof ownedContractItems>();
+    for (const item of ownedContractItems) {
       if (!map.has(item.contract_id)) {
         map.set(item.contract_id, []);
       }
       map.get(item.contract_id)?.push(item);
     }
     return map;
-  }, [contractItems]);
+  }, [ownedContractItems]);
 
   const activeItems = useMemo(
     () => (activeContractId ? itemsByContract.get(activeContractId) ?? [] : []),
@@ -94,7 +111,7 @@ export default function ContractItems() {
   );
 
   const contractSummaries = useMemo(() => {
-    return contracts.map((contract) => {
+    return ownedContracts.map((contract) => {
       const items = itemsByContract.get(contract.id) ?? [];
       const totalWithoutVat = items.reduce(
         (sum, item) => sum + item.quantity * item.price,
@@ -116,7 +133,7 @@ export default function ContractItems() {
         deliveryEnabled,
       };
     });
-  }, [contracts, itemsByContract]);
+  }, [ownedContracts, itemsByContract]);
 
   useEffect(() => {
     if (!activeContractId) {
@@ -242,7 +259,7 @@ export default function ContractItems() {
         </div>
 
         <div className="bg-card rounded-xl border border-border overflow-hidden">
-          {contracts.length === 0 ? (
+          {ownedContracts.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               No contracts yet. Create a contract to start adding items.
             </div>
