@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.models.contract import Contract
-from app.schemas.contract import ContractCreate, ContractOut, ContractUpdate
+from app.schemas.contract import ContractCreate, ContractOut, ContractUpdate, ContractDocumentUpdate
 from app.api.deps import get_db
+from app.services.contract_document import build_default_contract_document
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 logger = logging.getLogger("uvicorn.access")
@@ -22,6 +23,9 @@ def create_contract(data: ContractCreate, db: Session = Depends(get_db)):
         status="Draft",
     )
     db.add(contract)
+    db.commit()
+    db.refresh(contract)
+    contract.contract_document = build_default_contract_document(contract)
     db.commit()
     db.refresh(contract)
     logger.info("POST /contracts -> %s", contract.id)
@@ -61,6 +65,20 @@ def update_contract(
     logger.info("PUT /contracts/%s", contract_id)
     return contract
 
+@router.put("/{contract_id}/document", response_model=ContractOut)
+def update_contract_document(
+    contract_id: int,
+    data: ContractDocumentUpdate,
+    db: Session = Depends(get_db),
+):
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    contract.contract_document = data.contract_document.model_dump()
+    db.commit()
+    db.refresh(contract)
+    logger.info("PUT /contracts/%s/document", contract_id)
+    return contract
 
 @router.delete("/{contract_id}", status_code=204)
 @router.delete("/{contract_id}/", status_code=204, include_in_schema=False)
