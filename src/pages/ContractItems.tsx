@@ -29,9 +29,12 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileSpreadsheet, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getContractOwnerMap, getOwnedContractIds } from "@/lib/contractOwnership";
+import { ContractDocumentEditor } from "@/components/contracts/ContractDocumentEditor";
+import { useUpdateContractDocument } from "@/hooks/useContracts";
 
 interface EditableItem {
   product_id: number;
@@ -58,6 +61,7 @@ export default function ContractItems() {
   const createContractItem = useCreateContractItem();
   const updateContractItem = useUpdateContractItem();
   const deleteContractItem = useDeleteContractItem();
+  const updateContractDocument = useUpdateContractDocument();
 
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [activeContractId, setActiveContractId] = useState<number | null>(null);
@@ -93,6 +97,7 @@ export default function ContractItems() {
     () => new Map(ownedContracts.map((contract) => [contract.id, contract])),
     [ownedContracts],
   );
+  const activeContract = activeContractId ? contractsById.get(activeContractId) : undefined;
 
   const itemsByContract = useMemo(() => {
     const map = new Map<number, typeof ownedContractItems>();
@@ -337,229 +342,255 @@ export default function ContractItems() {
                 Manage items for {activeContractId ? contractsById.get(activeContractId)?.contract_number : ""}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-6 mt-4">
-              <div className="grid grid-cols-12 gap-3 items-end rounded-lg border border-border p-4">
-                <div className="col-span-4 space-y-2">
-                  <Label>Product *</Label>
-                  <Select
-                    value={newItem.product_id ? String(newItem.product_id) : ""}
-                    onValueChange={(value) =>
-                      setNewItem({ ...newItem, product_id: Number(value) })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={String(product.id)}>
-                          {product.name} ({product.unit})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label>Quantity</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={newItem.quantity}
-                    onChange={(event) =>
-                      setNewItem({ ...newItem, quantity: Number(event.target.value) })
-                    }
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label>Price (without VAT)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newItem.price}
-                    onChange={(event) =>
-                      setNewItem({ ...newItem, price: Number(event.target.value) })
-                    }
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label>Price (with VAT)</Label>
-                  <Input
-                    value={(newItem.price * (newItem.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)}
-                    readOnly
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      checked={newItem.vat_enabled}
-                      onCheckedChange={(checked) =>
-                        setNewItem((prev) => ({ ...prev, vat_enabled: checked === true }))
-                      }
-                      id="vat-enabled"
-                    />
-                    <Label htmlFor="vat-enabled">VAT 16%</Label>
-                  </div>
-                </div>
-                <div className="col-span-12 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      checked={newItem.delivery_enabled}
-                      onCheckedChange={(checked) =>
-                        setNewItem({ ...newItem, delivery_enabled: Boolean(checked) })
-                      }
-                      id="delivery-enabled"
-                    />
-                    <Label htmlFor="delivery-enabled">Has delivery</Label>
-                    {newItem.delivery_enabled && (
-                      <Input
-                        className="ml-4"
-                        value={newItem.delivery_terms}
-                        onChange={(event) =>
-                          setNewItem({ ...newItem, delivery_terms: event.target.value })
+            <Tabs defaultValue="items" className="mt-4">
+              <TabsList>
+                <TabsTrigger value="items">Items</TabsTrigger>
+                <TabsTrigger value="contract">Contract</TabsTrigger>
+              </TabsList>
+              <TabsContent value="items">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-12 gap-3 items-end rounded-lg border border-border p-4">
+                    <div className="col-span-4 space-y-2">
+                      <Label>Product *</Label>
+                      <Select
+                        value={newItem.product_id ? String(newItem.product_id) : ""}
+                        onValueChange={(value) =>
+                          setNewItem({ ...newItem, product_id: Number(value) })
                         }
-                        placeholder="Delivery terms"
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select product" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={String(product.id)}>
+                              {product.name} ({product.unit})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <Label>Quantity</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={newItem.quantity}
+                        onChange={(event) =>
+                          setNewItem({ ...newItem, quantity: Number(event.target.value) })
+                        }
                       />
-                    )}
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <Label>Price (without VAT)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newItem.price}
+                        onChange={(event) =>
+                          setNewItem({ ...newItem, price: Number(event.target.value) })
+                        }
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <Label>Price (with VAT)</Label>
+                      <Input
+                        value={(newItem.price * (newItem.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)}
+                        readOnly
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={newItem.vat_enabled}
+                          onCheckedChange={(checked) =>
+                            setNewItem((prev) => ({ ...prev, vat_enabled: checked === true }))
+                          }
+                          id="vat-enabled"
+                        />
+                        <Label htmlFor="vat-enabled">VAT 16%</Label>
+                      </div>
+                    </div>
+                    <div className="col-span-12 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={newItem.delivery_enabled}
+                          onCheckedChange={(checked) =>
+                            setNewItem({ ...newItem, delivery_enabled: Boolean(checked) })
+                          }
+                          id="delivery-enabled"
+                        />
+                        <Label htmlFor="delivery-enabled">Has delivery</Label>
+                        {newItem.delivery_enabled && (
+                          <Input
+                            className="ml-4"
+                            value={newItem.delivery_terms}
+                            onChange={(event) =>
+                              setNewItem({ ...newItem, delivery_terms: event.target.value })
+                            }
+                            placeholder="Delivery terms"
+                          />
+                        )}
+                      </div>
+                      <Button onClick={handleAddItem} disabled={!newItem.product_id || createContractItem.isPending}>
+                        Add item
+                      </Button>
+                    </div>
                   </div>
-                  <Button onClick={handleAddItem} disabled={!newItem.product_id || createContractItem.isPending}>
-                    Add item
-                  </Button>
-                </div>
-              </div>
 
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Qty</TableHead>
-                      <TableHead>Price (without VAT)</TableHead>
-                      <TableHead>Price (with VAT)</TableHead>
-                      <TableHead>VAT</TableHead>
-                      <TableHead>Delivery</TableHead>
-                      <TableHead className="w-[160px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {activeItems.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground">
-                          No items yet. Add the first product above.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      activeItems.map((item) => {
-                        const edited = editedItems[item.id];
-                        if (!edited) return null;
-                        return (
-                          <TableRow key={item.id} className="hover:bg-muted/50">
-                            <TableCell>
-                              <Select
-                                value={edited.product_id ? String(edited.product_id) : ""}
-                                onValueChange={(value) =>
-                                  updateEditedItem(item.id, "product_id", Number(value))
-                                }
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select product" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {products.map((product) => (
-                                    <SelectItem key={product.id} value={String(product.id)}>
-                                      {product.name} ({product.unit})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                min="1"
-                                step="1"
-                                value={edited.quantity}
-                                onChange={(event) =>
-                                  updateEditedItem(item.id, "quantity", Number(event.target.value))
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={edited.price}
-                                onChange={(event) =>
-                                  updateEditedItem(item.id, "price", Number(event.target.value))
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                value={(edited.price * (edited.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)}
-                                readOnly
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Checkbox
-                                checked={edited.vat_enabled}
-                                onCheckedChange={(checked) =>
-                                  updateEditedItem(item.id, "vat_enabled", checked === true)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Checkbox
-                                    checked={edited.delivery_enabled}
-                                    onCheckedChange={(checked) =>
-                                      updateEditedItem(item.id, "delivery_enabled", Boolean(checked))
-                                    }
-                                  />
-                                  <span className="text-xs text-muted-foreground">Enabled</span>
-                                </div>
-                                {edited.delivery_enabled && (
-                                  <Input
-                                    value={edited.delivery_terms}
-                                    onChange={(event) =>
-                                      updateEditedItem(item.id, "delivery_terms", event.target.value)
-                                    }
-                                    placeholder="Terms"
-                                  />
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleUpdateItem(item.id)}
-                                  disabled={updateContractItem.isPending}
-                                >
-                                  Save
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => deleteContractItem.mutateAsync(item.id)}
-                                  className="text-muted-foreground hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Qty</TableHead>
+                          <TableHead>Price (without VAT)</TableHead>
+                          <TableHead>Price (with VAT)</TableHead>
+                          <TableHead>VAT</TableHead>
+                          <TableHead>Delivery</TableHead>
+                          <TableHead className="w-[160px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {activeItems.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground">
+                              No items yet. Add the first product above.
                             </TableCell>
                           </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
+                        ) : (
+                          activeItems.map((item) => {
+                            const edited = editedItems[item.id];
+                            if (!edited) return null;
+                            return (
+                              <TableRow key={item.id} className="hover:bg-muted/50">
+                                <TableCell>
+                                  <Select
+                                    value={edited.product_id ? String(edited.product_id) : ""}
+                                    onValueChange={(value) =>
+                                      updateEditedItem(item.id, "product_id", Number(value))
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select product" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {products.map((product) => (
+                                        <SelectItem key={product.id} value={String(product.id)}>
+                                          {product.name} ({product.unit})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    value={edited.quantity}
+                                    onChange={(event) =>
+                                      updateEditedItem(item.id, "quantity", Number(event.target.value))
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={edited.price}
+                                    onChange={(event) =>
+                                      updateEditedItem(item.id, "price", Number(event.target.value))
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    value={(edited.price * (edited.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)}
+                                    readOnly
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Checkbox
+                                    checked={edited.vat_enabled}
+                                    onCheckedChange={(checked) =>
+                                      updateEditedItem(item.id, "vat_enabled", checked === true)
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <Checkbox
+                                        checked={edited.delivery_enabled}
+                                        onCheckedChange={(checked) =>
+                                          updateEditedItem(item.id, "delivery_enabled", Boolean(checked))
+                                        }
+                                      />
+                                      <span className="text-xs text-muted-foreground">Enabled</span>
+                                    </div>
+                                    {edited.delivery_enabled && (
+                                      <Input
+                                        value={edited.delivery_terms}
+                                        onChange={(event) =>
+                                          updateEditedItem(item.id, "delivery_terms", event.target.value)
+                                        }
+                                        placeholder="Terms"
+                                      />
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleUpdateItem(item.id)}
+                                      disabled={updateContractItem.isPending}
+                                    >
+                                      Save
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => deleteContractItem.mutateAsync(item.id)}
+                                      className="text-muted-foreground hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="contract">
+                {activeContract ? (
+                  <ContractDocumentEditor
+                    contract={activeContract}
+                    isSaving={updateContractDocument.isPending}
+                    onSave={async (document) => {
+                      await updateContractDocument.mutateAsync({
+                        id: activeContract.id,
+                        contract_document: document,
+                      });
+                    }}
+                  />
+                ) : (
+                  <div className="rounded-lg border border-border p-6 text-sm text-muted-foreground">
+                    Select a contract to view its document.
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={closeManageDialog}>
                 Close
