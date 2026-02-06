@@ -35,6 +35,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getContractOwnerMap, getOwnedContractIds } from "@/lib/contractOwnership";
 import { ContractDocumentEditor } from "@/components/contracts/ContractDocumentEditor";
 import { useUpdateContractDocument } from "@/hooks/useContracts";
+import { toast } from "sonner";
 
 interface EditableItem {
   product_id: number;
@@ -98,6 +99,13 @@ export default function ContractItems() {
     [ownedContracts],
   );
   const activeContract = activeContractId ? contractsById.get(activeContractId) : undefined;
+  const isContractConfirmed = activeContract?.status === "Confirmed";
+  const activeCustomer = activeContract ? customersById.get(activeContract.customer_id) : undefined;
+
+  const productsById = useMemo(
+    () => new Map(products.map((product) => [product.id, product])),
+    [products],
+  );
 
   const itemsByContract = useMemo(() => {
     const map = new Map<number, typeof ownedContractItems>();
@@ -225,6 +233,29 @@ export default function ContractItems() {
         [field]: value,
       },
     }));
+  };
+
+  const handleDownloadContract = async () => {
+    if (!activeContract) return;
+    try {
+      const response = await fetch(`/api/v1/contracts/${activeContract.id}/document/export`);
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || response.statusText);
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `contract-${activeContract.contract_number}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Contract downloaded");
+    } catch (error) {
+      toast.error("Failed to download contract");
+    }
   };
 
   return (
@@ -574,16 +605,91 @@ export default function ContractItems() {
               </TabsContent>
               <TabsContent value="contract">
                 {activeContract ? (
-                  <ContractDocumentEditor
-                    contract={activeContract}
-                    isSaving={updateContractDocument.isPending}
-                    onSave={async (document) => {
-                      await updateContractDocument.mutateAsync({
-                        id: activeContract.id,
-                        contract_document: document,
-                      });
-                    }}
-                  />
+                  isContractConfirmed ? (
+                    <div className="space-y-6">
+                      <div className="rounded-lg border border-border p-6 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <h3 className="text-lg font-semibold text-foreground">Contract overview</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Customer and items included in this contract.
+                            </p>
+                          </div>
+                          <Button onClick={handleDownloadContract}>
+                            Download contract
+                          </Button>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Customer</p>
+                            <p className="font-medium text-foreground">
+                              {activeCustomer?.name ?? "Unknown"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">BIN/IIN</p>
+                            <p className="font-medium text-foreground">
+                              {activeCustomer?.bin_iin ?? "—"}
+                            </p>
+                          </div>
+                          <div className="md:col-span-2">
+                            <p className="text-muted-foreground">Address</p>
+                            <p className="font-medium text-foreground">
+                              {activeCustomer?.address ?? "—"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-border overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Product</TableHead>
+                                <TableHead>Qty</TableHead>
+                                <TableHead>Price</TableHead>
+                                <TableHead>Total</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {activeItems.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                                    No items added yet.
+                                  </TableCell>
+                                </TableRow>
+                              ) : (
+                                activeItems.map((item) => (
+                                  <TableRow key={item.id}>
+                                    <TableCell>
+                                      {productsById.get(item.product_id)?.name ?? "Unknown"}
+                                    </TableCell>
+                                    <TableCell>{item.quantity}</TableCell>
+                                    <TableCell>{item.price.toFixed(2)}</TableCell>
+                                    <TableCell>
+                                      {(item.total_amount ?? item.quantity * item.price).toFixed(2)}
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                      <ContractDocumentEditor
+                        contract={activeContract}
+                        isSaving={updateContractDocument.isPending}
+                        onSave={async (document) => {
+                          await updateContractDocument.mutateAsync({
+                            id: activeContract.id,
+                            contract_document: document,
+                          });
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-border p-6 text-sm text-muted-foreground">
+                      Confirm the contract status to view and download the document.
+                    </div>
+                  )
                 ) : (
                   <div className="rounded-lg border border-border p-6 text-sm text-muted-foreground">
                     Select a contract to view its document.

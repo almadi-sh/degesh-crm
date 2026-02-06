@@ -2,13 +2,14 @@ from datetime import date
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.models.contract import Contract
 from app.schemas.contract import ContractCreate, ContractOut, ContractUpdate, ContractDocumentUpdate
 from app.api.deps import get_db
-from app.services.contract_document import build_default_contract_document
+from app.services.contract_document import build_default_contract_document, render_contract_document_text
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 logger = logging.getLogger("uvicorn.access")
@@ -79,6 +80,21 @@ def update_contract_document(
     db.refresh(contract)
     logger.info("PUT /contracts/%s/document", contract_id)
     return contract
+
+
+@router.get("/{contract_id}/document/export", response_class=PlainTextResponse)
+def export_contract_document(contract_id: int, db: Session = Depends(get_db)):
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if contract.status != "Confirmed":
+        raise HTTPException(status_code=400, detail="Contract must be confirmed before export")
+    content = render_contract_document_text(contract)
+    filename = f"contract-{contract.contract_number}.txt".replace(" ", "_")
+    return PlainTextResponse(
+        content,
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 @router.delete("/{contract_id}", status_code=204)
 @router.delete("/{contract_id}/", status_code=204, include_in_schema=False)

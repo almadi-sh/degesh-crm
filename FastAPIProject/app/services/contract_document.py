@@ -360,3 +360,68 @@ def build_default_contract_document(contract: Contract) -> dict:
             "buyer_stamp": "м.п.",
         },
     }
+
+
+def render_contract_document_text(contract: Contract) -> str:
+    document = contract.contract_document or build_default_contract_document(contract)
+    header = document.get("header", {})
+    signatures = document.get("signatures", {})
+    sections = []
+
+    title = header.get("title", "Договор")
+    contract_number = header.get("contract_number", contract.contract_number)
+    city = header.get("city", "г. Астана")
+    date = header.get("date", "")
+    sections.append(f"{title} {contract_number}")
+    sections.append(f"{city}\t\t{date}")
+    sections.append("")
+
+    buyer_name = contract.customer.name if contract.customer else "ТОО «Покупатель»"
+    buyer_bin = contract.customer.bin_iin if contract.customer else ""
+    buyer_address = contract.customer.address if contract.customer else ""
+    sections.append("Информация о покупателе:")
+    sections.append(f"Наименование: {buyer_name}")
+    if buyer_bin:
+        sections.append(f"БИН/ИИН: {buyer_bin}")
+    if buyer_address:
+        sections.append(f"Адрес: {buyer_address}")
+    sections.append("")
+
+    sections.append(document.get("intro", ""))
+    sections.append("")
+
+    sections.append("Спецификация (Contract items):")
+    if contract.items:
+        for index, item in enumerate(contract.items, start=1):
+            product_name = item.product.name if item.product else f"Product #{item.product_id}"
+            sections.append(
+                f"{index}. {product_name} — {item.quantity} x {item.price:.2f} "
+                f"= {item.total_amount:.2f}"
+            )
+            if item.delivery_enabled and item.delivery_terms:
+                sections.append(f"   Условия доставки: {item.delivery_terms}")
+    else:
+        sections.append("Нет позиций.")
+    sections.append("")
+
+    for clause in document.get("clauses", []):
+        title = clause.get("title", "")
+        body = clause.get("body", "")
+        if title:
+            sections.append(title)
+        if body:
+            sections.append(body)
+        sections.append("")
+
+    sections.append("Подписи сторон:")
+    sections.append(f"{signatures.get('seller_label', '«Продавец»')}")
+    sections.append(f"{signatures.get('seller_position', '')}")
+    sections.append(f"{signatures.get('seller_name', '')}")
+    sections.append(f"{signatures.get('seller_stamp', '')}")
+    sections.append("")
+    sections.append(f"{signatures.get('buyer_label', '«Покупатель»')}")
+    sections.append(f"{signatures.get('buyer_position', '')}")
+    sections.append(f"{signatures.get('buyer_name', '')}")
+    sections.append(f"{signatures.get('buyer_stamp', '')}")
+
+    return "\n".join([line for line in sections if line is not None])
