@@ -13,6 +13,38 @@ export interface ContractItem {
   delivery_terms?: string | null;
 }
 
+export interface ContractDocumentHeader {
+  title: string;
+  contract_number: string;
+  city: string;
+  date: string;
+}
+
+export interface ContractDocumentClause {
+  id: string;
+  title: string;
+  body: string;
+  deletable: boolean;
+}
+
+export interface ContractDocumentSignatures {
+  seller_label: string;
+  buyer_label: string;
+  seller_position: string;
+  buyer_position: string;
+  seller_name: string;
+  buyer_name: string;
+  seller_stamp: string;
+  buyer_stamp: string;
+}
+
+export interface ContractDocument {
+  header: ContractDocumentHeader;
+  intro: string;
+  clauses: ContractDocumentClause[];
+  signatures: ContractDocumentSignatures;
+}
+
 export interface Contract {
   id: number;
   customer_id: number;
@@ -21,6 +53,7 @@ export interface Contract {
   status: "Draft" | "Confirmed" | "Sent";
   last_modified_at: string;
   items: ContractItem[];
+  contract_document?: ContractDocument | null;
 }
 
 export interface ContractInsert {
@@ -28,6 +61,8 @@ export interface ContractInsert {
 }
 
 export type ContractUpdate = { status: "Draft" | "Confirmed" | "Sent" };
+
+export type ContractDocumentUpdate = { contract_document: ContractDocument };
 
 export interface ContractFilters {
   customer_id?: number;
@@ -115,6 +150,26 @@ export function useDeleteContract() {
     },
     onError: (error) => {
       toast.error("Failed to delete contract: " + error.message);
+    },
+  });
+}
+
+export function useUpdateContractDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...payload }: { id: number } & ContractDocumentUpdate) => {
+      return apiFetch<Contract>(`/api/v1/contracts/${id}/document`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      toast.success("Contract document updated successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to update contract document: " + error.message);
     },
   });
 }

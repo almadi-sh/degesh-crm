@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -13,6 +13,7 @@ class Contract(Base):
     contract_date = Column(Date, nullable=False, default=date.today)
     status = Column(String, nullable=False, default="Draft")
     last_modified_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
+    contract_document = Column(JSON, nullable=True)
 
     customer = relationship("Customer")
     items = relationship("ContractItem", back_populates="contract", cascade="all, delete-orphan")
