@@ -30,10 +30,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, FileText, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
+import { getContractOwnerMap, getOwnedContractIds, setContractOwner } from "@/lib/contractOwnership";
 
 export default function Contracts() {
   const { data: contracts = [], isLoading } = useContracts();
   const { data: clients = [] } = useClients();
+  const { user } = useAuth();
   const createContract = useCreateContract();
   const updateContract = useUpdateContract();
   const deleteContract = useDeleteContract();
@@ -42,10 +45,14 @@ export default function Contracts() {
   const [formData, setFormData] = useState<ContractInsert>({
     customer_id: 0,
   });
+  const [ownerMap, setOwnerMap] = useState(() => getContractOwnerMap());
 
   const customersById = new Map(clients.map((client) => [client.id, client]));
 
+  const ownedContractIds = new Set(getOwnedContractIds(ownerMap, user?.id ?? ""));
+
   const filteredContracts = contracts.filter((contract) => {
+    if (!ownedContractIds.has(contract.id)) return false;
     const customerName = customersById.get(contract.customer_id)?.name ?? "";
     return (
       contract.contract_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -55,10 +62,13 @@ export default function Contracts() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createContract.mutateAsync({
+    const createdContract = await createContract.mutateAsync({
       ...formData,
       customer_id: Number(formData.customer_id),
     });
+    if (user) {
+      setOwnerMap(setContractOwner(createdContract.id, user.id));
+    }
     setIsDialogOpen(false);
     setFormData({
       customer_id: 0,

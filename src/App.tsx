@@ -8,24 +8,32 @@ import Clients from "./pages/Clients";
 import Contracts from "./pages/Contracts";
 import ContractItems from "./pages/ContractItems";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import { AuthProvider } from "./hooks/useAuth";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/clients" element={<Clients />} />
-          <Route path="/contracts" element={<Contracts />} />
-          <Route path="/contract-items" element={<ContractItems />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/contracts" element={<Contracts />} />
+              <Route path="/contract-items" element={<ContractItems />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
