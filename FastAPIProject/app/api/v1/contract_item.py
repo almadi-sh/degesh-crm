@@ -14,8 +14,9 @@ router = APIRouter(prefix="/contract-items", tags=["Contract Items"])
 logger = logging.getLogger("uvicorn.access")
 
 
-def _calculate_total_amount(quantity: float, price: float) -> float:
-    return quantity * price
+def _calculate_total_amount(quantity: float, price: float, vat_enabled: bool) -> float:
+    vat_multiplier = 1.16 if vat_enabled else 1.0
+    return quantity * price * vat_multiplier
 
 
 def _reserve_inventory(db: Session, product_id: int, quantity: float) -> None:
@@ -46,7 +47,7 @@ def create_contract_item(data: ContractItemCreate, db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail="Contract items can only be added in Draft status")
 
     _reserve_inventory(db, data.product_id, data.quantity)
-    total_amount = _calculate_total_amount(data.quantity, data.price)
+    total_amount = _calculate_total_amount(data.quantity, data.price, data.vat_enabled)
 
     contract_item = ContractItem(
         contract_id=data.contract_id,
@@ -54,6 +55,9 @@ def create_contract_item(data: ContractItemCreate, db: Session = Depends(get_db)
         quantity=data.quantity,
         price=data.price,
         total_amount=total_amount,
+        vat_enabled=data.vat_enabled,
+        delivery_enabled=data.delivery_enabled,
+        delivery_terms=data.delivery_terms if data.delivery_enabled else None,
     )
     db.add(contract_item)
     db.commit()
@@ -90,6 +94,8 @@ def update_contract_item(
         raise HTTPException(status_code=400, detail="Contract items can only be updated in Draft status")
 
     update_data = data.dict(exclude_unset=True)
+    if update_data.get("delivery_enabled") is False:
+        update_data["delivery_terms"] = None
     if "product_id" in update_data or "quantity" in update_data:
         new_product_id = update_data.get("product_id", contract_item.product_id)
         new_quantity = update_data.get("quantity", contract_item.quantity)
@@ -106,10 +112,11 @@ def update_contract_item(
     for key, value in update_data.items():
         setattr(contract_item, key, value)
 
-    if "quantity" in update_data or "price" in update_data:
+    if "quantity" in update_data or "price" in update_data or "vat_enabled" in update_data:
         contract_item.total_amount = _calculate_total_amount(
             contract_item.quantity,
             contract_item.price,
+            contract_item.vat_enabled,
         )
 
     db.commit()
