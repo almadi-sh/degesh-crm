@@ -102,7 +102,9 @@ export default function ContractItems() {
       );
       const totalWithVat = items.reduce(
         (sum, item) =>
-          sum + item.quantity * item.price * (item.vat_enabled ? 1 + VAT_RATE : 1),
+          sum +
+          (item.total_amount ??
+            item.quantity * item.price * (item.vat_enabled ? 1 + VAT_RATE : 1)),
         0,
       );
       const deliveryEnabled = items.some((item) => item.delivery_enabled);
