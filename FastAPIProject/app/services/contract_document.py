@@ -29,7 +29,8 @@ def _body_to_blocks(clause_id: str, body: str) -> list[dict]:
             blocks.append({"type": "bullets", "items": bullet_items})
             bullet_items = []
 
-    pattern = re.compile(rf"^{re.escape(clause_id)}\.\d+(?:\.\d+)*\.\s*(.+)$")
+    clause_numbered_pattern = re.compile(rf"^{re.escape(clause_id)}\.\d+(?:\.\d+)*\.\s*(.+)$") if clause_id else None
+    generic_numbered_pattern = re.compile(r"^\d+(?:\.\d+)*[.)]\s*(.+)$")
 
     for raw_line in body.split("\n"):
         line = raw_line.strip()
@@ -37,23 +38,49 @@ def _body_to_blocks(clause_id: str, body: str) -> list[dict]:
             flush_numbered()
             flush_bullets()
             continue
+
         if line.startswith("-"):
             flush_numbered()
             bullet_items.append(line.lstrip("-").strip())
             continue
 
-        numbered_match = pattern.match(line)
-        if numbered_match:
+        numbered_text = ""
+        if clause_numbered_pattern:
+            clause_match = clause_numbered_pattern.match(line)
+            if clause_match:
+                numbered_text = clause_match.group(1).strip()
+
+        if not numbered_text:
+            generic_match = generic_numbered_pattern.match(line)
+            if generic_match:
+                numbered_text = generic_match.group(1).strip()
+
+        if numbered_text:
             flush_bullets()
-            numbered_items.append(numbered_match.group(1).strip())
+            numbered_items.append(numbered_text)
             continue
 
-        flush_numbered()
         flush_bullets()
-        blocks.append({"type": "paragraph", "text": line})
+        numbered_items.append(line)
 
     flush_numbered()
     flush_bullets()
+    return blocks
+
+
+def _get_clause_blocks(clause: dict) -> list[dict]:
+    blocks = clause.get("blocks") or []
+    if blocks:
+        return blocks
+
+    clause_id = str(clause.get("id", "")).strip()
+    clause_body = (clause.get("body") or "").strip()
+    if not clause_body:
+        clause["blocks"] = []
+        return []
+
+    blocks = _body_to_blocks(clause_id, clause_body)
+    clause["blocks"] = blocks
     return blocks
 
 
@@ -416,10 +443,7 @@ def build_default_contract_document(contract: Contract) -> dict:
     }
 
     for clause in document.get("clauses", []):
-        clause_id = str(clause.get("id", "")).strip()
-        clause_body = (clause.get("body") or "").strip()
-        if clause_body and not clause.get("blocks"):
-            clause["blocks"] = _body_to_blocks(clause_id, clause_body)
+        _get_clause_blocks(clause)
 
     return document
 
@@ -468,11 +492,38 @@ def render_contract_document_text(contract: Contract) -> str:
 
     for clause in document.get("clauses", []):
         title = clause.get("title", "")
-        body = clause.get("body", "")
         if title:
             sections.append(title)
-        if body:
-            sections.append(body)
+
+        blocks = _get_clause_blocks(clause)
+
+        if blocks:
+            clause_id = str(clause.get("id", "")).strip()
+            numbered_index = 1
+            for block in blocks:
+                block_type = (block or {}).get("type")
+                if block_type == "paragraph":
+                    text = (block.get("text") or "").strip()
+                    if text:
+                        sections.append(text)
+                elif block_type == "numbered":
+                    for item in block.get("items") or []:
+                        text = str(item).strip()
+                        if not text:
+                            continue
+                        prefix = f"{clause_id}.{numbered_index}. " if clause_id else f"{numbered_index}. "
+                        sections.append(f"{prefix}{text}")
+                        numbered_index += 1
+                elif block_type == "bullets":
+                    for item in block.get("items") or []:
+                        text = str(item).strip()
+                        if text:
+                            sections.append(f"- {text}")
+        else:
+            body = (clause.get("body") or "").strip()
+            if body:
+                sections.append(body)
+
         sections.append("")
 
     sections.append("Подписи сторон:")
@@ -514,15 +565,16 @@ def _add_page_number(run):
 
 def _add_footer(doc: Document) -> None:
     section = doc.sections[0]
-    footer_paragraph = section.footer.paragraphs[0]
+    footer = section.footer
+
+    footer_paragraph = footer.paragraphs[0]
     footer_paragraph.text = ""
-    footer_paragraph.paragraph_format.tab_stops.add_tab_stop(
-        section.page_width - section.left_margin - section.right_margin,
-        WD_TAB_ALIGNMENT.RIGHT,
-    )
+    footer_paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
     footer_paragraph.add_run("ТОО «Дегеш Агро ЛТД»")
-    footer_paragraph.add_run("	")
-    _add_page_number(footer_paragraph.add_run())
+
+    page_paragraph = footer.add_paragraph()
+    page_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    _add_page_number(page_paragraph.add_run())
 
 
 def _add_justified_paragraph(doc: Document, text: str, spacing_after: Pt | None = None):
@@ -545,7 +597,7 @@ def _add_clause_body_from_lines(doc: Document, lines: list[str]) -> None:
 
 
 def _add_clause_blocks(doc: Document, clause: dict) -> None:
-    blocks = clause.get("blocks") or []
+    blocks = _get_clause_blocks(clause)
     if blocks:
         clause_id = str(clause.get("id", "")).strip()
         numbered_index = 1
