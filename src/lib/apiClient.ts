@@ -5,6 +5,20 @@ interface ApiErrorPayload {
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await apiRequest(path, options);
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+export async function apiFetchResponse(path: string, options: RequestInit = {}): Promise<Response> {
+  return apiRequest(path, options);
+}
+
+async function apiRequest(path: string, options: RequestInit = {}): Promise<Response> {
   const headers = new Headers(options.headers);
   if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -28,9 +42,5 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     throw new Error(message);
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return (await response.json()) as T;
+  return response;
 }

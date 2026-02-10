@@ -36,6 +36,7 @@ import { getContractOwnerMap, getOwnedContractIds } from "@/lib/contractOwnershi
 import { ContractDocumentEditor } from "@/components/contracts/ContractDocumentEditor";
 import { useUpdateContractDocument } from "@/hooks/useContracts";
 import { toast } from "sonner";
+import { apiFetchResponse } from "@/lib/apiClient";
 
 interface EditableItem {
   product_id: number;
@@ -238,11 +239,7 @@ export default function ContractItems() {
   const handleDownloadContract = async () => {
     if (!activeContract) return;
     try {
-      const response = await fetch(`/api/v1/contracts/${activeContract.id}/document/export`);
-      if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || response.statusText);
-      }
+      const response = await apiFetchResponse(`/api/v1/contracts/${activeContract.id}/document/export`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -254,7 +251,8 @@ export default function ContractItems() {
       window.URL.revokeObjectURL(url);
       toast.success("Contract downloaded");
     } catch (error) {
-      toast.error("Failed to download contract");
+      const message = error instanceof Error ? error.message : "Failed to download contract";
+      toast.error(message);
     }
   };
 
