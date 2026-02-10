@@ -1,18 +1,66 @@
 from __future__ import annotations
 
+import re
 from io import BytesIO
 
 from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Cm, Pt
 
 from app.models.contract import Contract
+
+
+def _body_to_blocks(clause_id: str, body: str) -> list[dict]:
+    blocks: list[dict] = []
+    numbered_items: list[str] = []
+    bullet_items: list[str] = []
+
+    def flush_numbered():
+        nonlocal numbered_items
+        if numbered_items:
+            blocks.append({"type": "numbered", "items": numbered_items})
+            numbered_items = []
+
+    def flush_bullets():
+        nonlocal bullet_items
+        if bullet_items:
+            blocks.append({"type": "bullets", "items": bullet_items})
+            bullet_items = []
+
+    pattern = re.compile(rf"^{re.escape(clause_id)}\.\d+(?:\.\d+)*\.\s*(.+)$")
+
+    for raw_line in body.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            flush_numbered()
+            flush_bullets()
+            continue
+        if line.startswith("-"):
+            flush_numbered()
+            bullet_items.append(line.lstrip("-").strip())
+            continue
+
+        numbered_match = pattern.match(line)
+        if numbered_match:
+            flush_bullets()
+            numbered_items.append(numbered_match.group(1).strip())
+            continue
+
+        flush_numbered()
+        flush_bullets()
+        blocks.append({"type": "paragraph", "text": line})
+
+    flush_numbered()
+    flush_bullets()
+    return blocks
 
 
 def build_default_contract_document(contract: Contract) -> dict:
     contract_date = contract.contract_date.strftime("%d.%m.%Y") if contract.contract_date else ""
     buyer_name = contract.customer.name if contract.customer else "ТОО «Покупатель»"
-    return {
+    document = {
         "header": {
             "title": "Договор",
             "contract_number": contract.contract_number,
@@ -367,6 +415,14 @@ def build_default_contract_document(contract: Contract) -> dict:
         },
     }
 
+    for clause in document.get("clauses", []):
+        clause_id = str(clause.get("id", "")).strip()
+        clause_body = (clause.get("body") or "").strip()
+        if clause_body and not clause.get("blocks"):
+            clause["blocks"] = _body_to_blocks(clause_id, clause_body)
+
+    return document
+
 
 def render_contract_document_text(contract: Contract) -> str:
     document = contract.contract_document or build_default_contract_document(contract)
@@ -433,15 +489,107 @@ def render_contract_document_text(contract: Contract) -> str:
     return "\n".join([line for line in sections if line is not None])
 
 
+def _set_page_margins(doc: Document) -> None:
+    section = doc.sections[0]
+    section.left_margin = Cm(1.91)
+    section.right_margin = Cm(1.91)
+    section.top_margin = Cm(2.54)
+    section.bottom_margin = Cm(2.54)
+
+
+def _add_page_number(run):
+    run.add_text("Страница ")
+    fld_char_begin = OxmlElement("w:fldChar")
+    fld_char_begin.set(qn("w:fldCharType"), "begin")
+    instr_text = OxmlElement("w:instrText")
+    instr_text.set(qn("xml:space"), "preserve")
+    instr_text.text = " PAGE "
+    fld_char_end = OxmlElement("w:fldChar")
+    fld_char_end.set(qn("w:fldCharType"), "end")
+
+    run._r.append(fld_char_begin)
+    run._r.append(instr_text)
+    run._r.append(fld_char_end)
+
+
+def _add_footer(doc: Document) -> None:
+    section = doc.sections[0]
+    footer_paragraph = section.footer.paragraphs[0]
+    footer_paragraph.text = ""
+    footer_paragraph.paragraph_format.tab_stops.add_tab_stop(
+        section.page_width - section.left_margin - section.right_margin,
+        WD_TAB_ALIGNMENT.RIGHT,
+    )
+    footer_paragraph.add_run("ТОО «Дегеш Агро ЛТД»")
+    footer_paragraph.add_run("	")
+    _add_page_number(footer_paragraph.add_run())
+
+
+def _add_justified_paragraph(doc: Document, text: str, spacing_after: Pt | None = None):
+    paragraph = doc.add_paragraph(text)
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    paragraph.paragraph_format.space_before = Pt(0)
+    paragraph.paragraph_format.space_after = spacing_after if spacing_after is not None else Pt(0)
+    return paragraph
+
+
+def _add_clause_body_from_lines(doc: Document, lines: list[str]) -> None:
+    for line in lines:
+        clean_line = line.strip()
+        if not clean_line:
+            continue
+        if clean_line.startswith("-"):
+            _add_justified_paragraph(doc, f"- {clean_line.lstrip('-').strip()}")
+        else:
+            _add_justified_paragraph(doc, clean_line)
+
+
+def _add_clause_blocks(doc: Document, clause: dict) -> None:
+    blocks = clause.get("blocks") or []
+    if blocks:
+        clause_id = str(clause.get("id", "")).strip()
+        numbered_index = 1
+        for block in blocks:
+            block_type = (block or {}).get("type")
+            if block_type == "paragraph":
+                text = (block.get("text") or "").strip()
+                if text:
+                    _add_justified_paragraph(doc, text)
+            elif block_type == "numbered":
+                for item in block.get("items") or []:
+                    text = str(item).strip()
+                    if not text:
+                        continue
+                    prefix = f"{clause_id}.{numbered_index}. " if clause_id else f"{numbered_index}. "
+                    _add_justified_paragraph(doc, f"{prefix}{text}")
+                    numbered_index += 1
+            elif block_type == "bullets":
+                for item in block.get("items") or []:
+                    text = str(item).strip()
+                    if text:
+                        _add_justified_paragraph(doc, f"- {text}")
+        return
+
+    clause_body = (clause.get("body") or "").strip()
+    if clause_body:
+        _add_clause_body_from_lines(doc, clause_body.split("\n"))
+
+
 def render_contract_document_docx(contract: Contract) -> bytes:
     document_payload = contract.contract_document or build_default_contract_document(contract)
     header = document_payload.get("header", {})
     signatures = document_payload.get("signatures", {})
 
     doc = Document()
+    _set_page_margins(doc)
+    _add_footer(doc)
+
     style = doc.styles["Normal"]
     style.font.name = "Times New Roman"
     style.font.size = Pt(12)
+    style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    style.paragraph_format.space_before = Pt(0)
+    style.paragraph_format.space_after = Pt(0)
 
     title = header.get("title", "Договор")
     contract_number = header.get("contract_number", contract.contract_number)
@@ -453,27 +601,39 @@ def render_contract_document_docx(contract: Contract) -> bytes:
         number_part = f"№{number_part}"
     heading = doc.add_paragraph(f"{title} {number_part}")
     heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    heading.runs[0].bold = True
+    heading.paragraph_format.space_before = Pt(0)
+    heading.paragraph_format.space_after = Pt(0)
+    if heading.runs:
+        heading.runs[0].bold = True
 
+    section = doc.sections[0]
     city_line = doc.add_paragraph()
-    city_line.add_run(city)
-    city_line.add_run("\t\t")
-    city_line.add_run(f"Дата {contract_date}")
+    city_line.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    city_line.paragraph_format.space_before = Pt(0)
+    city_line.paragraph_format.space_after = Pt(0)
+    city_line.paragraph_format.tab_stops.add_tab_stop(
+        section.page_width - section.left_margin - section.right_margin,
+        WD_TAB_ALIGNMENT.RIGHT,
+    )
+    city_run = city_line.add_run(city)
+    city_run.bold = True
+    city_line.add_run("\t")
+    date_run = city_line.add_run(f"Дата {contract_date}")
+    date_run.bold = True
 
-    intro = doc.add_paragraph(document_payload.get("intro", ""))
-    intro.paragraph_format.space_after = Pt(12)
+    _add_justified_paragraph(doc, document_payload.get("intro", ""), spacing_after=Pt(8))
 
     for clause in document_payload.get("clauses", []):
         clause_title = (clause.get("title") or "").strip()
-        clause_body = (clause.get("body") or "").strip()
         if clause_title:
             title_paragraph = doc.add_paragraph(clause_title)
             title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            if title_paragraph.runs:
-                title_paragraph.runs[0].bold = True
-        if clause_body:
-            for line in clause_body.split("\n"):
-                doc.add_paragraph(line)
+            title_paragraph.paragraph_format.space_before = Pt(0)
+            title_paragraph.paragraph_format.space_after = Pt(0)
+            for run in title_paragraph.runs:
+                run.bold = True
+
+        _add_clause_blocks(doc, clause)
 
     doc.add_paragraph("")
     signatures_line = doc.add_paragraph("Подписи сторон:")

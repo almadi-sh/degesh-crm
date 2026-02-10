@@ -9,11 +9,32 @@ class ContractDocumentHeader(BaseModel):
     city: str
     date: str
 
+class ContractDocumentParagraphBlock(BaseModel):
+    type: Literal["paragraph"]
+    text: str
+
+
+class ContractDocumentNumberedBlock(BaseModel):
+    type: Literal["numbered"]
+    items: List[str]
+
+
+class ContractDocumentBulletsBlock(BaseModel):
+    type: Literal["bullets"]
+    items: List[str]
+
+
+ContractDocumentBlock = (
+    ContractDocumentParagraphBlock | ContractDocumentNumberedBlock | ContractDocumentBulletsBlock
+)
+
 class ContractDocumentClause(BaseModel):
     id: str
     title: str
-    body: str
+    body: str | None = None
+    blocks: List[ContractDocumentBlock] | None = None
     deletable: bool
+
 
 class ContractDocumentSignatures(BaseModel):
     seller_label: str
