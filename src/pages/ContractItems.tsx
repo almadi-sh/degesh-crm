@@ -242,9 +242,13 @@ export default function ContractItems() {
       const response = await apiFetchResponse(`/api/v1/contracts/${activeContract.id}/document/export`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const filenameMatch = disposition.match(/filename=([^;]+)/i);
+      const fallbackFilename = `contract-${activeContract.contract_number}.docx`;
+      const filename = filenameMatch?.[1]?.trim().replace(/^"|"$/g, "") || fallbackFilename;
       const link = document.createElement("a");
       link.href = url;
-      link.download = `contract-${activeContract.contract_number}.txt`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();

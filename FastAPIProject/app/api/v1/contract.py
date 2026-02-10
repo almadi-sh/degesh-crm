@@ -1,15 +1,19 @@
 from datetime import date
+from io import BytesIO
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.models.contract import Contract
 from app.schemas.contract import ContractCreate, ContractOut, ContractUpdate, ContractDocumentUpdate
 from app.api.deps import get_db
-from app.services.contract_document import build_default_contract_document, render_contract_document_text
+from app.services.contract_document import (
+    build_default_contract_document,
+    render_contract_document_docx,
+)
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 logger = logging.getLogger("uvicorn.access")
@@ -82,17 +86,19 @@ def update_contract_document(
     return contract
 
 
-@router.get("/{contract_id}/document/export", response_class=PlainTextResponse)
+@router.get("/{contract_id}/document/export")
+@router.get("/{contract_id}/document/export/", include_in_schema=False)
 def export_contract_document(contract_id: int, db: Session = Depends(get_db)):
     contract = db.query(Contract).filter(Contract.id == contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found")
     if contract.status != "Confirmed":
         raise HTTPException(status_code=400, detail="Contract must be confirmed before export")
-    content = render_contract_document_text(contract)
-    filename = f"contract-{contract.contract_number}.txt".replace(" ", "_")
-    return PlainTextResponse(
-        content,
+    content = render_contract_document_docx(contract)
+    filename = f"contract-{contract.contract_number}.docx".replace(" ", "_")
+    return StreamingResponse(
+        BytesIO(content),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
