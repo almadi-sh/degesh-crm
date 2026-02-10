@@ -1,6 +1,7 @@
 from datetime import date
 from io import BytesIO
 import logging
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -92,14 +93,21 @@ def export_contract_document(contract_id: int, db: Session = Depends(get_db)):
     contract = db.query(Contract).filter(Contract.id == contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found")
+
     if contract.status != "Confirmed":
         raise HTTPException(status_code=400, detail="Contract must be confirmed before export")
+
     content = render_contract_document_docx(contract)
+
     filename = f"contract-{contract.contract_number}.docx".replace(" ", "_")
+    filename_encoded = quote(filename)
+
     return StreamingResponse(
         BytesIO(content),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{filename_encoded}"
+        },
     )
 
 @router.delete("/{contract_id}", status_code=204)
