@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from io import BytesIO
+
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt
+
 from app.models.contract import Contract
 
 
@@ -425,3 +431,70 @@ def render_contract_document_text(contract: Contract) -> str:
     sections.append(f"{signatures.get('buyer_stamp', '')}")
 
     return "\n".join([line for line in sections if line is not None])
+
+
+def render_contract_document_docx(contract: Contract) -> bytes:
+    document_payload = contract.contract_document or build_default_contract_document(contract)
+    header = document_payload.get("header", {})
+    signatures = document_payload.get("signatures", {})
+
+    doc = Document()
+    style = doc.styles["Normal"]
+    style.font.name = "Times New Roman"
+    style.font.size = Pt(12)
+
+    title = header.get("title", "Договор")
+    contract_number = header.get("contract_number", contract.contract_number)
+    city = header.get("city", "г. Астана")
+    contract_date = header.get("date", "")
+
+    number_part = str(contract_number).strip()
+    if not number_part.startswith("№"):
+        number_part = f"№{number_part}"
+    heading = doc.add_paragraph(f"{title} {number_part}")
+    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    heading.runs[0].bold = True
+
+    city_line = doc.add_paragraph()
+    city_line.add_run(city)
+    city_line.add_run("\t\t")
+    city_line.add_run(f"Дата {contract_date}")
+
+    intro = doc.add_paragraph(document_payload.get("intro", ""))
+    intro.paragraph_format.space_after = Pt(12)
+
+    for clause in document_payload.get("clauses", []):
+        clause_title = (clause.get("title") or "").strip()
+        clause_body = (clause.get("body") or "").strip()
+        if clause_title:
+            title_paragraph = doc.add_paragraph(clause_title)
+            title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if title_paragraph.runs:
+                title_paragraph.runs[0].bold = True
+        if clause_body:
+            for line in clause_body.split("\n"):
+                doc.add_paragraph(line)
+
+    doc.add_paragraph("")
+    signatures_line = doc.add_paragraph("Подписи сторон:")
+    signatures_line.runs[0].bold = True
+
+    signatures_table = doc.add_table(rows=3, cols=2)
+    signatures_table.style = "Table Grid"
+    signatures_table.cell(0, 0).text = signatures.get("seller_label", "«Продавец»")
+    signatures_table.cell(0, 1).text = signatures.get("buyer_label", "«Покупатель»")
+
+    signatures_table.cell(1, 0).text = signatures.get("seller_position", "Директор")
+    signatures_table.cell(1, 1).text = signatures.get("buyer_position", "Директор")
+
+    signatures_table.cell(2, 0).text = (
+        f"{signatures.get('seller_name', '')}\n{signatures.get('seller_stamp', '')}"
+    )
+    signatures_table.cell(2, 1).text = (
+        f"{signatures.get('buyer_name', '')}\n{signatures.get('buyer_stamp', '')}"
+    )
+
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer.read()
