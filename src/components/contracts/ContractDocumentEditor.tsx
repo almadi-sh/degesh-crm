@@ -122,7 +122,7 @@ export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractD
             </div>
             <Textarea
               className="min-h-[160px]"
-              value={clause.body}
+              value={clause.body ?? ""}
               onChange={(event) => updateClause(index, "body", event.target.value)}
             />
           </div>

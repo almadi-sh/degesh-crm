@@ -20,10 +20,16 @@ export interface ContractDocumentHeader {
   date: string;
 }
 
+export type ContractDocumentBlock =
+  | { type: "paragraph"; text: string }
+  | { type: "numbered"; items: string[] }
+  | { type: "bullets"; items: string[] };
+
 export interface ContractDocumentClause {
   id: string;
   title: string;
-  body: string;
+  body?: string;
+  blocks?: ContractDocumentBlock[];
   deletable: boolean;
 }
 
