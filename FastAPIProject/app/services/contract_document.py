@@ -1,22 +1,17 @@
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
+import tempfile
 from io import BytesIO
 from pathlib import Path
-from xml.sax.saxutils import escape
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import cm
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.models.contract import Contract
 
@@ -665,8 +660,14 @@ def _add_clause_blocks(doc: Document, clause: dict) -> None:
             _add_justified_paragraph(doc, text)
 
 
-def render_contract_document_docx(contract: Contract) -> bytes:
-    document_payload = normalize_contract_document_payload(contract.contract_document) if contract.contract_document else build_default_contract_document(contract)
+def render_contract_document_docx(contract: Contract, document_payload_override: dict | None = None) -> bytes:
+    document_payload = (
+        normalize_contract_document_payload(document_payload_override)
+        if document_payload_override
+        else normalize_contract_document_payload(contract.contract_document)
+        if contract.contract_document
+        else build_default_contract_document(contract)
+    )
     header = document_payload.get("header", {})
     signatures = document_payload.get("signatures", {})
 
@@ -707,7 +708,7 @@ def render_contract_document_docx(contract: Contract) -> bytes:
     )
     city_run = city_line.add_run(city)
     city_run.bold = True
-    city_line.add_run("\t")
+    city_line.add_run("	")
     date_run = city_line.add_run(f"Дата {contract_date}")
     date_run.bold = True
 
@@ -750,221 +751,46 @@ def render_contract_document_docx(contract: Contract) -> bytes:
     return buffer.read()
 
 
-def _register_pdf_font() -> tuple[str, str]:
-    fallback_fonts = ("Helvetica", "Helvetica-Bold")
-    preferred_families: tuple[dict[str, object], ...] = (
-        {
-            "family": "DejaVuSans",
-            "normal": (
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                "/usr/share/fonts/dejavu/DejaVuSans.ttf",
-                "/usr/share/fonts/TTF/DejaVuSans.ttf",
-                "/usr/local/share/fonts/DejaVuSans.ttf",
-            ),
-            "bold": (
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
-                "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
-                "/usr/local/share/fonts/DejaVuSans-Bold.ttf",
-            ),
-        },
-        {
-            "family": "LiberationSans",
-            "normal": (
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-                "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
-                "/usr/share/fonts/TTF/LiberationSans-Regular.ttf",
-            ),
-            "bold": (
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-                "/usr/share/fonts/liberation/LiberationSans-Bold.ttf",
-                "/usr/share/fonts/TTF/LiberationSans-Bold.ttf",
-            ),
-        },
-        {
-            "family": "NotoSans",
-            "normal": (
-                "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-                "/usr/share/fonts/noto/NotoSans-Regular.ttf",
-                "/usr/share/fonts/TTF/NotoSans-Regular.ttf",
-            ),
-            "bold": (
-                "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
-                "/usr/share/fonts/noto/NotoSans-Bold.ttf",
-                "/usr/share/fonts/TTF/NotoSans-Bold.ttf",
-            ),
-        },
-    )
+def _convert_docx_bytes_to_pdf(docx_content: bytes) -> bytes:
+    converter_candidates = [
+        shutil.which("soffice"),
+        shutil.which("libreoffice"),
+    ]
+    converter_path = next((candidate for candidate in converter_candidates if candidate), None)
 
-    for family in preferred_families:
-        family_name = str(family["family"])
-        normal_paths = family.get("normal") or ()
-        bold_paths = family.get("bold") or ()
+    if not converter_path:
+        raise RuntimeError(
+            "DOCX to PDF converter is unavailable. Install LibreOffice (soffice) on the backend host."
+        )
 
-        normal_path = next((path for path in normal_paths if Path(path).exists()), None)
-        if not normal_path:
-            continue
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        source_docx = temp_path / "contract.docx"
+        source_docx.write_bytes(docx_content)
 
-        bold_path = next((path for path in bold_paths if Path(path).exists()), None)
+        command = [
+            converter_path,
+            "--headless",
+            "--convert-to",
+            "pdf",
+            "--outdir",
+            str(temp_path),
+            str(source_docx),
+        ]
 
-        try:
-            normal_name = family_name
-            pdfmetrics.registerFont(TTFont(normal_name, normal_path))
+        process = subprocess.run(command, capture_output=True, text=True, check=False)
+        result_pdf = temp_path / "contract.pdf"
 
-            bold_name = f"{family_name}-Bold"
-            if bold_path:
-                pdfmetrics.registerFont(TTFont(bold_name, bold_path))
-            else:
-                bold_name = normal_name
+        if process.returncode != 0 or not result_pdf.exists():
+            stderr = (process.stderr or process.stdout or "").strip()
+            raise RuntimeError(
+                "Failed to convert DOCX to PDF via LibreOffice."
+                + (f" Details: {stderr}" if stderr else "")
+            )
 
-            pdfmetrics.registerFontFamily(family_name, normal=normal_name, bold=bold_name)
-            return normal_name, bold_name
-        except Exception:
-            continue
-
-    return fallback_fonts
+        return result_pdf.read_bytes()
 
 
 def render_contract_document_pdf(contract: Contract, document_payload_override: dict | None = None) -> bytes:
-    document_payload = (
-        normalize_contract_document_payload(document_payload_override)
-        if document_payload_override
-        else normalize_contract_document_payload(contract.contract_document)
-        if contract.contract_document
-        else build_default_contract_document(contract)
-    )
-    header = document_payload.get("header", {})
-    signatures = document_payload.get("signatures", {})
-    font_name, bold_font_name = _register_pdf_font()
-
-    styles = getSampleStyleSheet()
-    normal_style = ParagraphStyle(
-        "ContractNormal",
-        parent=styles["Normal"],
-        fontName=font_name,
-        fontSize=11,
-        leading=15,
-    )
-    heading_style = ParagraphStyle(
-        "ContractHeading",
-        parent=normal_style,
-        fontName=bold_font_name,
-        alignment=1,
-        fontSize=13,
-        leading=17,
-        spaceAfter=8,
-    )
-    clause_title_style = ParagraphStyle(
-        "ContractClauseTitle",
-        parent=normal_style,
-        fontName=bold_font_name,
-        alignment=1,
-        spaceBefore=6,
-        spaceAfter=4,
-    )
-    emphasis_style = ParagraphStyle(
-        "ContractEmphasis",
-        parent=normal_style,
-        fontName=bold_font_name,
-    )
-
-    number_part = str(header.get("contract_number", contract.contract_number)).strip()
-    if not number_part.startswith("№"):
-        number_part = f"№{number_part}"
-
-    story: list = [
-        Paragraph(
-            f"{escape(header.get('title', 'Договор'))} {escape(number_part)}",
-            heading_style,
-        ),
-        Paragraph(
-            f"{escape(header.get('city', 'г. Астана'))} — Дата {escape(header.get('date', ''))}",
-            emphasis_style,
-        ),
-        Spacer(1, 0.3 * cm),
-        Paragraph(escape(document_payload.get("intro", "")), normal_style),
-        Spacer(1, 0.2 * cm),
-    ]
-
-    for clause in document_payload.get("clauses", []):
-        clause_title = (clause.get("title") or "").strip()
-        if clause_title:
-            story.append(Paragraph(escape(clause_title), clause_title_style))
-
-        blocks = _get_clause_blocks(clause)
-        if blocks:
-            clause_id = str(clause.get("id", "")).strip()
-            numbered_index = 1
-            for block in blocks:
-                block_type = (block or {}).get("type")
-                if block_type == "paragraph":
-                    text = (block.get("text") or "").strip()
-                    if text:
-                        story.append(Paragraph(escape(text), normal_style))
-                elif block_type == "numbered":
-                    for item in block.get("items") or []:
-                        text = str(item).strip()
-                        if not text:
-                            continue
-                        prefix = f"{clause_id}.{numbered_index}. " if clause_id else f"{numbered_index}. "
-                        story.append(Paragraph(f"{escape(prefix)}{escape(text)}", normal_style))
-                        numbered_index += 1
-                elif block_type == "bullets":
-                    for item in block.get("items") or []:
-                        text = str(item).strip()
-                        if text:
-                            story.append(Paragraph(f"• {escape(text)}", normal_style))
-            continue
-
-        for item in clause.get("body") or []:
-            text = str(item).strip()
-            if text:
-                story.append(Paragraph(escape(text), normal_style))
-
-    story.extend(
-        [
-            Spacer(1, 0.4 * cm),
-            Paragraph("Подписи сторон:", emphasis_style),
-            Spacer(1, 0.2 * cm),
-        ]
-    )
-
-    signatures_table = Table(
-        [
-            [signatures.get("seller_label", "«Продавец»"), signatures.get("buyer_label", "«Покупатель»")],
-            [signatures.get("seller_position", "Директор"), signatures.get("buyer_position", "Директор")],
-            [
-                f"{signatures.get('seller_name', '')}\n{signatures.get('seller_stamp', '')}",
-                f"{signatures.get('buyer_name', '')}\n{signatures.get('buyer_stamp', '')}",
-            ],
-        ],
-        colWidths=[8 * cm, 8 * cm],
-    )
-    signatures_table.setStyle(
-        TableStyle(
-            [
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-                ("FONTNAME", (0, 0), (-1, -1), font_name),
-                ("FONTSIZE", (0, 0), (-1, -1), 10),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ]
-        )
-    )
-    story.append(signatures_table)
-
-    buffer = BytesIO()
-    pdf = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=2 * cm,
-        rightMargin=2 * cm,
-        topMargin=2 * cm,
-        bottomMargin=2 * cm,
-    )
-    pdf.build(story)
-    buffer.seek(0)
-    return buffer.read()
+    docx_content = render_contract_document_docx(contract, document_payload_override)
+    return _convert_docx_bytes_to_pdf(docx_content)

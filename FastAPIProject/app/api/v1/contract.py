@@ -126,7 +126,10 @@ def preview_contract_document_pdf(
         raise HTTPException(status_code=400, detail="Contract must be confirmed before preview")
 
     payload_override = data.contract_document.model_dump() if data else None
-    content = render_contract_document_pdf(contract, payload_override)
+    try:
+        content = render_contract_document_pdf(contract, payload_override)
+    except RuntimeError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
     return StreamingResponse(
         BytesIO(content),
