@@ -28,7 +28,7 @@ export type ContractDocumentBlock =
 export interface ContractDocumentClause {
   id: string;
   title: string;
-  body?: string;
+  body?: string[];
   blocks?: ContractDocumentBlock[];
   deletable: boolean;
 }
