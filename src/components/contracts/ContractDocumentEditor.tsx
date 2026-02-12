@@ -12,14 +12,43 @@ interface ContractDocumentEditorProps {
   isSaving: boolean;
 }
 
+const normalizeClauseBody = (clause: ContractDocumentClause): string[] => {
+  const rawBody = clause.body as unknown;
+
+  if (Array.isArray(rawBody)) {
+    return rawBody.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof rawBody === "string") {
+    return rawBody
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((item) => item.replace(/^\d+(?:\.\d+)*[.)]?\s*/, "").replace(/^-\s*/, ""));
+  }
+
+  return [];
+};
+
+const normalizeDocumentClauses = (clauses: ContractDocumentClause[]) =>
+  clauses.map((clause) => ({ ...clause, body: normalizeClauseBody(clause) }));
+
 const cloneClauses = (clauses: ContractDocumentClause[]) =>
-  clauses.map((clause) => ({ ...clause, body: [...(clause.body ?? [])] }));
+  normalizeDocumentClauses(clauses).map((clause) => ({ ...clause, body: [...(clause.body ?? [])] }));
 
 export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractDocumentEditorProps) {
-  const [document, setDocument] = useState<ContractDocument | null>(contract.contract_document ?? null);
+  const [document, setDocument] = useState<ContractDocument | null>(
+    contract.contract_document
+      ? { ...contract.contract_document, clauses: normalizeDocumentClauses(contract.contract_document.clauses) }
+      : null,
+  );
 
   useEffect(() => {
-    setDocument(contract.contract_document ?? null);
+    setDocument(
+      contract.contract_document
+        ? { ...contract.contract_document, clauses: normalizeDocumentClauses(contract.contract_document.clauses) }
+        : null,
+    );
   }, [contract]);
 
   const header = document?.header;

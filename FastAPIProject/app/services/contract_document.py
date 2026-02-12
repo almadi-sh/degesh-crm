@@ -69,6 +69,20 @@ def _get_clause_blocks(clause: dict) -> list[dict]:
     return []
 
 
+
+def normalize_contract_document_payload(document: dict | None) -> dict:
+    payload = document or {}
+    clauses = payload.get("clauses") or []
+    if not isinstance(clauses, list):
+        payload["clauses"] = []
+        return payload
+
+    for clause in clauses:
+        if isinstance(clause, dict):
+            _get_clause_blocks(clause)
+
+    return payload
+
 def build_default_contract_document(contract: Contract) -> dict:
     contract_date = contract.contract_date.strftime("%d.%m.%Y") if contract.contract_date else ""
     buyer_name = contract.customer.name if contract.customer else "ТОО «Покупатель»"
@@ -427,14 +441,11 @@ def build_default_contract_document(contract: Contract) -> dict:
         },
     }
 
-    for clause in document.get("clauses", []):
-        _get_clause_blocks(clause)
-
-    return document
+    return normalize_contract_document_payload(document)
 
 
 def render_contract_document_text(contract: Contract) -> str:
-    document = contract.contract_document or build_default_contract_document(contract)
+    document = normalize_contract_document_payload(contract.contract_document) if contract.contract_document else build_default_contract_document(contract)
     header = document.get("header", {})
     signatures = document.get("signatures", {})
     sections = []
@@ -604,7 +615,7 @@ def _add_clause_blocks(doc: Document, clause: dict) -> None:
 
 
 def render_contract_document_docx(contract: Contract) -> bytes:
-    document_payload = contract.contract_document or build_default_contract_document(contract)
+    document_payload = normalize_contract_document_payload(contract.contract_document) if contract.contract_document else build_default_contract_document(contract)
     header = document_payload.get("header", {})
     signatures = document_payload.get("signatures", {})
 
