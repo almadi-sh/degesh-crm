@@ -750,17 +750,79 @@ def render_contract_document_docx(contract: Contract) -> bytes:
     return buffer.read()
 
 
-def _register_pdf_font() -> str:
-    font_name = "Helvetica"
-    for font_path in (
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/local/share/fonts/DejaVuSans.ttf",
-    ):
-        if Path(font_path).exists():
-            pdfmetrics.registerFont(TTFont("DejaVuSans", font_path))
-            font_name = "DejaVuSans"
-            break
-    return font_name
+def _register_pdf_font() -> tuple[str, str]:
+    fallback_fonts = ("Helvetica", "Helvetica-Bold")
+    preferred_families: tuple[dict[str, object], ...] = (
+        {
+            "family": "DejaVuSans",
+            "normal": (
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/TTF/DejaVuSans.ttf",
+                "/usr/local/share/fonts/DejaVuSans.ttf",
+            ),
+            "bold": (
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+                "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+                "/usr/local/share/fonts/DejaVuSans-Bold.ttf",
+            ),
+        },
+        {
+            "family": "LiberationSans",
+            "normal": (
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/TTF/LiberationSans-Regular.ttf",
+            ),
+            "bold": (
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                "/usr/share/fonts/liberation/LiberationSans-Bold.ttf",
+                "/usr/share/fonts/TTF/LiberationSans-Bold.ttf",
+            ),
+        },
+        {
+            "family": "NotoSans",
+            "normal": (
+                "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+                "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+                "/usr/share/fonts/TTF/NotoSans-Regular.ttf",
+            ),
+            "bold": (
+                "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+                "/usr/share/fonts/noto/NotoSans-Bold.ttf",
+                "/usr/share/fonts/TTF/NotoSans-Bold.ttf",
+            ),
+        },
+    )
+
+    for family in preferred_families:
+        family_name = str(family["family"])
+        normal_paths = family.get("normal") or ()
+        bold_paths = family.get("bold") or ()
+
+        normal_path = next((path for path in normal_paths if Path(path).exists()), None)
+        if not normal_path:
+            continue
+
+        bold_path = next((path for path in bold_paths if Path(path).exists()), None)
+
+        try:
+            normal_name = family_name
+            pdfmetrics.registerFont(TTFont(normal_name, normal_path))
+
+            bold_name = f"{family_name}-Bold"
+            if bold_path:
+                pdfmetrics.registerFont(TTFont(bold_name, bold_path))
+            else:
+                bold_name = normal_name
+
+            pdfmetrics.registerFontFamily(family_name, normal=normal_name, bold=bold_name)
+            return normal_name, bold_name
+        except Exception:
+            continue
+
+    return fallback_fonts
 
 
 def render_contract_document_pdf(contract: Contract, document_payload_override: dict | None = None) -> bytes:
@@ -773,7 +835,7 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
     )
     header = document_payload.get("header", {})
     signatures = document_payload.get("signatures", {})
-    font_name = _register_pdf_font()
+    font_name, bold_font_name = _register_pdf_font()
 
     styles = getSampleStyleSheet()
     normal_style = ParagraphStyle(
@@ -786,6 +848,7 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
     heading_style = ParagraphStyle(
         "ContractHeading",
         parent=normal_style,
+        fontName=bold_font_name,
         alignment=1,
         fontSize=13,
         leading=17,
@@ -794,9 +857,15 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
     clause_title_style = ParagraphStyle(
         "ContractClauseTitle",
         parent=normal_style,
+        fontName=bold_font_name,
         alignment=1,
         spaceBefore=6,
         spaceAfter=4,
+    )
+    emphasis_style = ParagraphStyle(
+        "ContractEmphasis",
+        parent=normal_style,
+        fontName=bold_font_name,
     )
 
     number_part = str(header.get("contract_number", contract.contract_number)).strip()
@@ -805,12 +874,12 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
 
     story: list = [
         Paragraph(
-            f"<b>{escape(header.get('title', 'Договор'))} {escape(number_part)}</b>",
+            f"{escape(header.get('title', 'Договор'))} {escape(number_part)}",
             heading_style,
         ),
         Paragraph(
-            f"<b>{escape(header.get('city', 'г. Астана'))}</b> — <b>Дата {escape(header.get('date', ''))}</b>",
-            normal_style,
+            f"{escape(header.get('city', 'г. Астана'))} — Дата {escape(header.get('date', ''))}",
+            emphasis_style,
         ),
         Spacer(1, 0.3 * cm),
         Paragraph(escape(document_payload.get("intro", "")), normal_style),
@@ -820,7 +889,7 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
     for clause in document_payload.get("clauses", []):
         clause_title = (clause.get("title") or "").strip()
         if clause_title:
-            story.append(Paragraph(f"<b>{escape(clause_title)}</b>", clause_title_style))
+            story.append(Paragraph(escape(clause_title), clause_title_style))
 
         blocks = _get_clause_blocks(clause)
         if blocks:
@@ -855,7 +924,7 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
     story.extend(
         [
             Spacer(1, 0.4 * cm),
-            Paragraph("<b>Подписи сторон:</b>", normal_style),
+            Paragraph("Подписи сторон:", emphasis_style),
             Spacer(1, 0.2 * cm),
         ]
     )
