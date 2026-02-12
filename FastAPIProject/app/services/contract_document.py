@@ -2,12 +2,21 @@ from __future__ import annotations
 
 import re
 from io import BytesIO
+from pathlib import Path
+from xml.sax.saxutils import escape
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import cm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.models.contract import Contract
 
@@ -737,5 +746,156 @@ def render_contract_document_docx(contract: Contract) -> bytes:
 
     buffer = BytesIO()
     doc.save(buffer)
+    buffer.seek(0)
+    return buffer.read()
+
+
+def _register_pdf_font() -> str:
+    font_name = "Helvetica"
+    for font_path in (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/local/share/fonts/DejaVuSans.ttf",
+    ):
+        if Path(font_path).exists():
+            pdfmetrics.registerFont(TTFont("DejaVuSans", font_path))
+            font_name = "DejaVuSans"
+            break
+    return font_name
+
+
+def render_contract_document_pdf(contract: Contract, document_payload_override: dict | None = None) -> bytes:
+    document_payload = (
+        normalize_contract_document_payload(document_payload_override)
+        if document_payload_override
+        else normalize_contract_document_payload(contract.contract_document)
+        if contract.contract_document
+        else build_default_contract_document(contract)
+    )
+    header = document_payload.get("header", {})
+    signatures = document_payload.get("signatures", {})
+    font_name = _register_pdf_font()
+
+    styles = getSampleStyleSheet()
+    normal_style = ParagraphStyle(
+        "ContractNormal",
+        parent=styles["Normal"],
+        fontName=font_name,
+        fontSize=11,
+        leading=15,
+    )
+    heading_style = ParagraphStyle(
+        "ContractHeading",
+        parent=normal_style,
+        alignment=1,
+        fontSize=13,
+        leading=17,
+        spaceAfter=8,
+    )
+    clause_title_style = ParagraphStyle(
+        "ContractClauseTitle",
+        parent=normal_style,
+        alignment=1,
+        spaceBefore=6,
+        spaceAfter=4,
+    )
+
+    number_part = str(header.get("contract_number", contract.contract_number)).strip()
+    if not number_part.startswith("№"):
+        number_part = f"№{number_part}"
+
+    story: list = [
+        Paragraph(
+            f"<b>{escape(header.get('title', 'Договор'))} {escape(number_part)}</b>",
+            heading_style,
+        ),
+        Paragraph(
+            f"<b>{escape(header.get('city', 'г. Астана'))}</b> — <b>Дата {escape(header.get('date', ''))}</b>",
+            normal_style,
+        ),
+        Spacer(1, 0.3 * cm),
+        Paragraph(escape(document_payload.get("intro", "")), normal_style),
+        Spacer(1, 0.2 * cm),
+    ]
+
+    for clause in document_payload.get("clauses", []):
+        clause_title = (clause.get("title") or "").strip()
+        if clause_title:
+            story.append(Paragraph(f"<b>{escape(clause_title)}</b>", clause_title_style))
+
+        blocks = _get_clause_blocks(clause)
+        if blocks:
+            clause_id = str(clause.get("id", "")).strip()
+            numbered_index = 1
+            for block in blocks:
+                block_type = (block or {}).get("type")
+                if block_type == "paragraph":
+                    text = (block.get("text") or "").strip()
+                    if text:
+                        story.append(Paragraph(escape(text), normal_style))
+                elif block_type == "numbered":
+                    for item in block.get("items") or []:
+                        text = str(item).strip()
+                        if not text:
+                            continue
+                        prefix = f"{clause_id}.{numbered_index}. " if clause_id else f"{numbered_index}. "
+                        story.append(Paragraph(f"{escape(prefix)}{escape(text)}", normal_style))
+                        numbered_index += 1
+                elif block_type == "bullets":
+                    for item in block.get("items") or []:
+                        text = str(item).strip()
+                        if text:
+                            story.append(Paragraph(f"• {escape(text)}", normal_style))
+            continue
+
+        for item in clause.get("body") or []:
+            text = str(item).strip()
+            if text:
+                story.append(Paragraph(escape(text), normal_style))
+
+    story.extend(
+        [
+            Spacer(1, 0.4 * cm),
+            Paragraph("<b>Подписи сторон:</b>", normal_style),
+            Spacer(1, 0.2 * cm),
+        ]
+    )
+
+    signatures_table = Table(
+        [
+            [signatures.get("seller_label", "«Продавец»"), signatures.get("buyer_label", "«Покупатель»")],
+            [signatures.get("seller_position", "Директор"), signatures.get("buyer_position", "Директор")],
+            [
+                f"{signatures.get('seller_name', '')}\n{signatures.get('seller_stamp', '')}",
+                f"{signatures.get('buyer_name', '')}\n{signatures.get('buyer_stamp', '')}",
+            ],
+        ],
+        colWidths=[8 * cm, 8 * cm],
+    )
+    signatures_table.setStyle(
+        TableStyle(
+            [
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                ("FONTNAME", (0, 0), (-1, -1), font_name),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    story.append(signatures_table)
+
+    buffer = BytesIO()
+    pdf = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=2 * cm,
+        rightMargin=2 * cm,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm,
+    )
+    pdf.build(story)
     buffer.seek(0)
     return buffer.read()

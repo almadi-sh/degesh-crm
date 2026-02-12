@@ -16,6 +16,7 @@ from app.services.contract_document import (
     ensure_contract_document,
     normalize_contract_document_payload,
     render_contract_document_docx,
+    render_contract_document_pdf,
 )
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
@@ -108,6 +109,30 @@ def reset_contract_document(contract_id: int, db: Session = Depends(get_db)):
     contract.contract_document = ensure_contract_document(contract)
     return contract
 
+
+
+@router.post("/{contract_id}/document/preview-pdf")
+@router.post("/{contract_id}/document/preview-pdf/", include_in_schema=False)
+def preview_contract_document_pdf(
+    contract_id: int,
+    data: ContractDocumentUpdate | None = None,
+    db: Session = Depends(get_db),
+):
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    if contract.status != "Confirmed":
+        raise HTTPException(status_code=400, detail="Contract must be confirmed before preview")
+
+    payload_override = data.contract_document.model_dump() if data else None
+    content = render_contract_document_pdf(contract, payload_override)
+
+    return StreamingResponse(
+        BytesIO(content),
+        media_type="application/pdf",
+        headers={"Content-Disposition": "inline; filename=contract-preview.pdf"},
+    )
 
 @router.get("/{contract_id}/document/export")
 @router.get("/{contract_id}/document/export/", include_in_schema=False)

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useClients } from "@/hooks/useClients";
 import { useContracts } from "@/hooks/useContracts";
@@ -79,6 +79,9 @@ export default function ContractItems() {
   const [editedItems, setEditedItems] = useState<Record<number, EditableItem>>({});
   const [draftContractDocument, setDraftContractDocument] = useState<ContractDocument | null>(null);
   const [isContractDocumentDirty, setIsContractDocumentDirty] = useState(false);
+  const [contractPreviewPdfUrl, setContractPreviewPdfUrl] = useState<string | null>(null);
+  const [isContractPreviewLoading, setIsContractPreviewLoading] = useState(false);
+  const previewBlobUrlRef = useRef<string | null>(null);
   const [ownerMap] = useState(() => getContractOwnerMap());
   const handleDocumentChange = useCallback((document: ContractDocument, isDirty: boolean) => {
     setDraftContractDocument(document);
@@ -183,6 +186,11 @@ export default function ContractItems() {
   };
 
   const closeManageDialog = () => {
+    if (previewBlobUrlRef.current) {
+      window.URL.revokeObjectURL(previewBlobUrlRef.current);
+      previewBlobUrlRef.current = null;
+    }
+    setContractPreviewPdfUrl(null);
     setIsManageDialogOpen(false);
     setActiveContractId(null);
     setDraftContractDocument(null);
@@ -288,6 +296,54 @@ export default function ContractItems() {
     setDraftContractDocument(null);
     setIsContractDocumentDirty(false);
   };
+
+  const refreshContractPreview = useCallback(async () => {
+    if (!activeContract || activeContract.status !== "Confirmed") {
+      setContractPreviewPdfUrl(null);
+      return;
+    }
+
+    setIsContractPreviewLoading(true);
+    try {
+      const body = draftContractDocument
+        ? JSON.stringify({ contract_document: draftContractDocument })
+        : undefined;
+      const response = await apiFetchResponse(`/api/v1/contracts/${activeContract.id}/document/preview-pdf?ts=${Date.now()}`, {
+        method: "POST",
+        cache: "no-store",
+        body,
+      });
+      const blob = await response.blob();
+      const nextUrl = window.URL.createObjectURL(blob);
+      if (previewBlobUrlRef.current) {
+        window.URL.revokeObjectURL(previewBlobUrlRef.current);
+      }
+      previewBlobUrlRef.current = nextUrl;
+      setContractPreviewPdfUrl(nextUrl);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load PDF preview";
+      toast.error(message);
+    } finally {
+      setIsContractPreviewLoading(false);
+    }
+  }, [activeContract, draftContractDocument]);
+
+  useEffect(() => {
+    if (!isManageDialogOpen) return;
+    const timeoutId = window.setTimeout(() => {
+      void refreshContractPreview();
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isManageDialogOpen, refreshContractPreview]);
+
+  useEffect(() => {
+    return () => {
+      if (previewBlobUrlRef.current) {
+        window.URL.revokeObjectURL(previewBlobUrlRef.current);
+      }
+    };
+  }, []);
 
   return (
     <MainLayout>
@@ -648,9 +704,14 @@ export default function ContractItems() {
                               Customer and items included in this contract.
                             </p>
                           </div>
-                          <Button onClick={handleDownloadContract}>
-                            Download contract
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" onClick={() => void refreshContractPreview()} disabled={isContractPreviewLoading}>
+                              {isContractPreviewLoading ? "Refreshing preview..." : "Refresh preview"}
+                            </Button>
+                            <Button onClick={handleDownloadContract}>
+                              Download contract
+                            </Button>
+                          </div>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2 text-sm">
                           <div>
@@ -707,6 +768,26 @@ export default function ContractItems() {
                           </Table>
                         </div>
                       </div>
+                      <div className="rounded-lg border border-border p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-base font-semibold text-foreground">PDF preview</h3>
+                          {isContractPreviewLoading && (
+                            <span className="text-xs text-muted-foreground">Updating…</span>
+                          )}
+                        </div>
+                        {contractPreviewPdfUrl ? (
+                          <iframe
+                            title="Contract PDF preview"
+                            src={contractPreviewPdfUrl}
+                            className="w-full h-[720px] rounded-md border border-border bg-background"
+                          />
+                        ) : (
+                          <div className="rounded-md border border-dashed border-border p-6 text-sm text-muted-foreground">
+                            PDF preview is unavailable. Click “Refresh preview” to generate it.
+                          </div>
+                        )}
+                      </div>
+
                       <ContractDocumentEditor
                         contract={activeContract}
                         isSaving={updateContractDocument.isPending}
