@@ -13,6 +13,7 @@ from app.schemas.contract import ContractCreate, ContractOut, ContractUpdate, Co
 from app.api.deps import get_db
 from app.services.contract_document import (
     build_default_contract_document,
+    ensure_contract_document,
     normalize_contract_document_payload,
     render_contract_document_docx,
 )
@@ -36,7 +37,7 @@ def create_contract(data: ContractCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(contract)
     logger.info("POST /contracts -> %s", contract.id)
-    contract.contract_document = normalize_contract_document_payload(contract.contract_document)
+    contract.contract_document = ensure_contract_document(contract)
     return contract
 
 @router.get("/", response_model=List[ContractOut])
@@ -49,7 +50,7 @@ def list_contracts(
         query = query.filter(Contract.customer_id == customer_id)
     contracts = query.all()
     for contract in contracts:
-        contract.contract_document = normalize_contract_document_payload(contract.contract_document)
+        contract.contract_document = ensure_contract_document(contract)
     return contracts
 
 @router.get("/{contract_id}", response_model=ContractOut)
@@ -57,7 +58,7 @@ def get_contract(contract_id: int, db: Session = Depends(get_db)):
     contract = db.query(Contract).filter(Contract.id == contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found")
-    contract.contract_document = normalize_contract_document_payload(contract.contract_document)
+    contract.contract_document = ensure_contract_document(contract)
     return contract
 
 @router.put("/{contract_id}", response_model=ContractOut)
@@ -75,7 +76,7 @@ def update_contract(
     db.commit()
     db.refresh(contract)
     logger.info("PUT /contracts/%s", contract_id)
-    contract.contract_document = normalize_contract_document_payload(contract.contract_document)
+    contract.contract_document = ensure_contract_document(contract)
     return contract
 
 @router.put("/{contract_id}/document", response_model=ContractOut)
@@ -91,7 +92,7 @@ def update_contract_document(
     db.commit()
     db.refresh(contract)
     logger.info("PUT /contracts/%s/document", contract_id)
-    contract.contract_document = normalize_contract_document_payload(contract.contract_document)
+    contract.contract_document = ensure_contract_document(contract)
     return contract
 
 
