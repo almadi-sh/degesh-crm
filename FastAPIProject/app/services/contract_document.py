@@ -83,6 +83,45 @@ def normalize_contract_document_payload(document: dict | None) -> dict:
 
     return payload
 
+
+def has_complete_contract_document(document: dict | None) -> bool:
+    if not isinstance(document, dict):
+        return False
+
+    required_root_fields = {"header", "intro", "clauses", "signatures"}
+    if not required_root_fields.issubset(document.keys()):
+        return False
+
+    header = document.get("header")
+    if not isinstance(header, dict):
+        return False
+
+    required_header_fields = {"title", "contract_number", "city", "date"}
+    if not required_header_fields.issubset(header.keys()):
+        return False
+
+    signatures = document.get("signatures")
+    if not isinstance(signatures, dict):
+        return False
+
+    required_signature_fields = {
+        "seller_label",
+        "buyer_label",
+        "seller_position",
+        "buyer_position",
+        "seller_name",
+        "buyer_name",
+        "seller_stamp",
+        "buyer_stamp",
+    }
+    return required_signature_fields.issubset(signatures.keys())
+
+
+def ensure_contract_document(contract: Contract) -> dict:
+    if has_complete_contract_document(contract.contract_document):
+        return normalize_contract_document_payload(contract.contract_document)
+    return build_default_contract_document(contract)
+
 def build_default_contract_document(contract: Contract) -> dict:
     contract_date = contract.contract_date.strftime("%d.%m.%Y") if contract.contract_date else ""
     buyer_name = contract.customer.name if contract.customer else "ТОО «Покупатель»"
