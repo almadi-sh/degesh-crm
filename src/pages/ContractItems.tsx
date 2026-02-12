@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useClients } from "@/hooks/useClients";
 import { useContracts } from "@/hooks/useContracts";
@@ -34,7 +34,7 @@ import { FileSpreadsheet, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getContractOwnerMap, getOwnedContractIds } from "@/lib/contractOwnership";
 import { ContractDocumentEditor } from "@/components/contracts/ContractDocumentEditor";
-import { useUpdateContractDocument } from "@/hooks/useContracts";
+import { ContractDocument, useUpdateContractDocument } from "@/hooks/useContracts";
 import { toast } from "sonner";
 import { apiFetchResponse } from "@/lib/apiClient";
 
@@ -76,7 +76,14 @@ export default function ContractItems() {
     delivery_terms: "",
   });
   const [editedItems, setEditedItems] = useState<Record<number, EditableItem>>({});
+  const [draftContractDocument, setDraftContractDocument] = useState<ContractDocument | null>(null);
+  const [isContractDocumentDirty, setIsContractDocumentDirty] = useState(false);
   const [ownerMap] = useState(() => getContractOwnerMap());
+  const handleDocumentChange = useCallback((document: ContractDocument, isDirty: boolean) => {
+    setDraftContractDocument(document);
+    setIsContractDocumentDirty(isDirty);
+  }, []);
+
 
   const ownedContractIds = useMemo(
     () => new Set(getOwnedContractIds(ownerMap, user?.id ?? "")),
@@ -177,6 +184,8 @@ export default function ContractItems() {
   const closeManageDialog = () => {
     setIsManageDialogOpen(false);
     setActiveContractId(null);
+    setDraftContractDocument(null);
+    setIsContractDocumentDirty(false);
     setNewItem({
       product_id: 0,
       quantity: 1,
@@ -239,6 +248,14 @@ export default function ContractItems() {
   const handleDownloadContract = async () => {
     if (!activeContract) return;
     try {
+      if (isContractDocumentDirty && draftContractDocument) {
+        await updateContractDocument.mutateAsync({
+          id: activeContract.id,
+          contract_document: draftContractDocument,
+        });
+        setIsContractDocumentDirty(false);
+      }
+
       const response = await apiFetchResponse(`/api/v1/contracts/${activeContract.id}/document/export`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -369,7 +386,7 @@ export default function ContractItems() {
             }
           }}
         >
-          <DialogContent className="max-w-4xl p-0">
+          <DialogContent className="max-w-4xl overflow-hidden p-0">
             <div className="flex max-h-[90vh] flex-col">
               <DialogHeader className="px-6 pt-6">
                 <DialogTitle className="font-display text-xl">
@@ -681,11 +698,13 @@ export default function ContractItems() {
                       <ContractDocumentEditor
                         contract={activeContract}
                         isSaving={updateContractDocument.isPending}
+                        onDocumentChange={handleDocumentChange}
                         onSave={async (document) => {
                           await updateContractDocument.mutateAsync({
                             id: activeContract.id,
                             contract_document: document,
                           });
+                          setIsContractDocumentDirty(false);
                         }}
                       />
                     </div>

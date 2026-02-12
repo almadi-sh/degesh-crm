@@ -10,6 +10,7 @@ interface ContractDocumentEditorProps {
   contract: Contract;
   onSave: (document: ContractDocument) => Promise<void>;
   isSaving: boolean;
+  onDocumentChange?: (document: ContractDocument, isDirty: boolean) => void;
 }
 
 const normalizeClauseBody = (clause: ContractDocumentClause): string[] => {
@@ -36,20 +37,26 @@ const normalizeDocumentClauses = (clauses: ContractDocumentClause[]) =>
 const cloneClauses = (clauses: ContractDocumentClause[]) =>
   normalizeDocumentClauses(clauses).map((clause) => ({ ...clause, body: [...(clause.body ?? [])] }));
 
-export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractDocumentEditorProps) {
+export function ContractDocumentEditor({ contract, onSave, isSaving, onDocumentChange }: ContractDocumentEditorProps) {
   const [document, setDocument] = useState<ContractDocument | null>(
     contract.contract_document
       ? { ...contract.contract_document, clauses: normalizeDocumentClauses(contract.contract_document.clauses) }
       : null,
   );
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    setDocument(
+    const initialDocument =
       contract.contract_document
         ? { ...contract.contract_document, clauses: normalizeDocumentClauses(contract.contract_document.clauses) }
-        : null,
-    );
-  }, [contract]);
+        : null;
+    setDocument(initialDocument);
+    setIsDirty(false);
+
+    if (initialDocument) {
+      onDocumentChange?.(initialDocument, false);
+    }
+  }, [contract, onDocumentChange]);
 
   const header = document?.header;
   const signatures = document?.signatures;
@@ -64,17 +71,35 @@ export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractD
   }
 
   const updateHeader = (field: keyof ContractDocument["header"], value: string) => {
-    setDocument((prev) => (prev ? { ...prev, header: { ...prev.header, [field]: value } } : prev));
+    setDocument((prev) => {
+      if (!prev) return prev;
+      const nextDocument = { ...prev, header: { ...prev.header, [field]: value } };
+      setIsDirty(true);
+      onDocumentChange?.(nextDocument, true);
+      return nextDocument;
+    });
   };
 
   const updateSignature = (field: keyof ContractDocument["signatures"], value: string) => {
     setDocument((prev) =>
-      prev ? { ...prev, signatures: { ...prev.signatures, [field]: value } } : prev,
+      {
+        if (!prev) return prev;
+        const nextDocument = { ...prev, signatures: { ...prev.signatures, [field]: value } };
+        setIsDirty(true);
+        onDocumentChange?.(nextDocument, true);
+        return nextDocument;
+      },
     );
   };
 
   const updateIntro = (value: string) => {
-    setDocument((prev) => (prev ? { ...prev, intro: value } : prev));
+    setDocument((prev) => {
+      if (!prev) return prev;
+      const nextDocument = { ...prev, intro: value };
+      setIsDirty(true);
+      onDocumentChange?.(nextDocument, true);
+      return nextDocument;
+    });
   };
 
   const updateClause = (index: number, field: keyof ContractDocumentClause, value: string | boolean) => {
@@ -82,7 +107,10 @@ export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractD
       if (!prev) return prev;
       const nextClauses = cloneClauses(prev.clauses);
       nextClauses[index] = { ...nextClauses[index], [field]: value } as ContractDocumentClause;
-      return { ...prev, clauses: nextClauses };
+      const nextDocument = { ...prev, clauses: nextClauses };
+      setIsDirty(true);
+      onDocumentChange?.(nextDocument, true);
+      return nextDocument;
     });
   };
 
@@ -93,7 +121,10 @@ export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractD
       const nextBody = [...(nextClauses[clauseIndex].body ?? [])];
       nextBody[itemIndex] = value;
       nextClauses[clauseIndex] = { ...nextClauses[clauseIndex], body: nextBody };
-      return { ...prev, clauses: nextClauses };
+      const nextDocument = { ...prev, clauses: nextClauses };
+      setIsDirty(true);
+      onDocumentChange?.(nextDocument, true);
+      return nextDocument;
     });
   };
 
@@ -103,7 +134,10 @@ export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractD
       const nextClauses = cloneClauses(prev.clauses);
       const nextBody = [...(nextClauses[clauseIndex].body ?? []), ""];
       nextClauses[clauseIndex] = { ...nextClauses[clauseIndex], body: nextBody };
-      return { ...prev, clauses: nextClauses };
+      const nextDocument = { ...prev, clauses: nextClauses };
+      setIsDirty(true);
+      onDocumentChange?.(nextDocument, true);
+      return nextDocument;
     });
   };
 
@@ -113,7 +147,10 @@ export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractD
       const nextClauses = cloneClauses(prev.clauses);
       const nextBody = (nextClauses[clauseIndex].body ?? []).filter((_, index) => index !== itemIndex);
       nextClauses[clauseIndex] = { ...nextClauses[clauseIndex], body: nextBody };
-      return { ...prev, clauses: nextClauses };
+      const nextDocument = { ...prev, clauses: nextClauses };
+      setIsDirty(true);
+      onDocumentChange?.(nextDocument, true);
+      return nextDocument;
     });
   };
 
@@ -121,13 +158,18 @@ export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractD
     setDocument((prev) => {
       if (!prev) return prev;
       const nextClauses = prev.clauses.filter((_, clauseIndex) => clauseIndex !== index);
-      return { ...prev, clauses: nextClauses };
+      const nextDocument = { ...prev, clauses: nextClauses };
+      setIsDirty(true);
+      onDocumentChange?.(nextDocument, true);
+      return nextDocument;
     });
   };
 
   const handleSave = async () => {
     if (!document) return;
     await onSave(document);
+    setIsDirty(false);
+    onDocumentChange?.(document, false);
   };
 
   return (
@@ -277,7 +319,7 @@ export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractD
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save contract document"}
+          {isSaving ? "Saving..." : isDirty ? "Save contract document" : "Saved"}
         </Button>
       </div>
     </div>
