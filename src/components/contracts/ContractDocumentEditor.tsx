@@ -9,7 +9,9 @@ import { Plus, Trash2 } from "lucide-react";
 interface ContractDocumentEditorProps {
   contract: Contract;
   onSave: (document: ContractDocument) => Promise<void>;
+  onResetToDefault: () => Promise<void>;
   isSaving: boolean;
+  isResetting: boolean;
   onDocumentChange?: (document: ContractDocument, isDirty: boolean) => void;
 }
 
@@ -37,7 +39,14 @@ const normalizeDocumentClauses = (clauses: ContractDocumentClause[]) =>
 const cloneClauses = (clauses: ContractDocumentClause[]) =>
   normalizeDocumentClauses(clauses).map((clause) => ({ ...clause, body: [...(clause.body ?? [])] }));
 
-export function ContractDocumentEditor({ contract, onSave, isSaving, onDocumentChange }: ContractDocumentEditorProps) {
+export function ContractDocumentEditor({
+  contract,
+  onSave,
+  onResetToDefault,
+  isSaving,
+  isResetting,
+  onDocumentChange,
+}: ContractDocumentEditorProps) {
   const [document, setDocument] = useState<ContractDocument | null>(
     contract.contract_document
       ? { ...contract.contract_document, clauses: normalizeDocumentClauses(contract.contract_document.clauses) }
@@ -317,8 +326,15 @@ export function ContractDocumentEditor({ contract, onSave, isSaving, onDocumentC
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isSaving}>
+      <div className="flex justify-end gap-3">
+        <Button
+          variant="outline"
+          onClick={onResetToDefault}
+          disabled={isSaving || isResetting}
+        >
+          {isResetting ? "Resetting..." : "Back to default contract"}
+        </Button>
+        <Button onClick={handleSave} disabled={isSaving || isResetting}>
           {isSaving ? "Saving..." : isDirty ? "Save contract document" : "Saved"}
         </Button>
       </div>
