@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 interface ContractDocumentEditorProps {
   contract: Contract;
@@ -12,14 +12,43 @@ interface ContractDocumentEditorProps {
   isSaving: boolean;
 }
 
+const normalizeClauseBody = (clause: ContractDocumentClause): string[] => {
+  const rawBody = clause.body as unknown;
+
+  if (Array.isArray(rawBody)) {
+    return rawBody.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof rawBody === "string") {
+    return rawBody
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((item) => item.replace(/^\d+(?:\.\d+)*[.)]?\s*/, "").replace(/^-\s*/, ""));
+  }
+
+  return [];
+};
+
+const normalizeDocumentClauses = (clauses: ContractDocumentClause[]) =>
+  clauses.map((clause) => ({ ...clause, body: normalizeClauseBody(clause) }));
+
 const cloneClauses = (clauses: ContractDocumentClause[]) =>
-  clauses.map((clause) => ({ ...clause }));
+  normalizeDocumentClauses(clauses).map((clause) => ({ ...clause, body: [...(clause.body ?? [])] }));
 
 export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractDocumentEditorProps) {
-  const [document, setDocument] = useState<ContractDocument | null>(contract.contract_document ?? null);
+  const [document, setDocument] = useState<ContractDocument | null>(
+    contract.contract_document
+      ? { ...contract.contract_document, clauses: normalizeDocumentClauses(contract.contract_document.clauses) }
+      : null,
+  );
 
   useEffect(() => {
-    setDocument(contract.contract_document ?? null);
+    setDocument(
+      contract.contract_document
+        ? { ...contract.contract_document, clauses: normalizeDocumentClauses(contract.contract_document.clauses) }
+        : null,
+    );
   }, [contract]);
 
   const header = document?.header;
@@ -53,6 +82,37 @@ export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractD
       if (!prev) return prev;
       const nextClauses = cloneClauses(prev.clauses);
       nextClauses[index] = { ...nextClauses[index], [field]: value } as ContractDocumentClause;
+      return { ...prev, clauses: nextClauses };
+    });
+  };
+
+  const updateClauseBodyItem = (clauseIndex: number, itemIndex: number, value: string) => {
+    setDocument((prev) => {
+      if (!prev) return prev;
+      const nextClauses = cloneClauses(prev.clauses);
+      const nextBody = [...(nextClauses[clauseIndex].body ?? [])];
+      nextBody[itemIndex] = value;
+      nextClauses[clauseIndex] = { ...nextClauses[clauseIndex], body: nextBody };
+      return { ...prev, clauses: nextClauses };
+    });
+  };
+
+  const addClauseBodyItem = (clauseIndex: number) => {
+    setDocument((prev) => {
+      if (!prev) return prev;
+      const nextClauses = cloneClauses(prev.clauses);
+      const nextBody = [...(nextClauses[clauseIndex].body ?? []), ""];
+      nextClauses[clauseIndex] = { ...nextClauses[clauseIndex], body: nextBody };
+      return { ...prev, clauses: nextClauses };
+    });
+  };
+
+  const removeClauseBodyItem = (clauseIndex: number, itemIndex: number) => {
+    setDocument((prev) => {
+      if (!prev) return prev;
+      const nextClauses = cloneClauses(prev.clauses);
+      const nextBody = (nextClauses[clauseIndex].body ?? []).filter((_, index) => index !== itemIndex);
+      nextClauses[clauseIndex] = { ...nextClauses[clauseIndex], body: nextBody };
       return { ...prev, clauses: nextClauses };
     });
   };
@@ -120,11 +180,35 @@ export function ContractDocumentEditor({ contract, onSave, isSaving }: ContractD
                 </Button>
               )}
             </div>
-            <Textarea
-              className="min-h-[160px]"
-              value={clause.body ?? ""}
-              onChange={(event) => updateClause(index, "body", event.target.value)}
-            />
+            <div className="space-y-3">
+              {(clause.body ?? []).map((item, itemIndex) => (
+                <div key={`${clause.id}-item-${itemIndex}`} className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-xs text-muted-foreground">
+                      {clause.id}.{itemIndex + 1}
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeClauseBodyItem(index, itemIndex)}
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Textarea
+                    className="min-h-[90px]"
+                    value={item}
+                    onChange={(event) => updateClauseBodyItem(index, itemIndex, event.target.value)}
+                  />
+                </div>
+              ))}
+              <Button type="button" variant="outline" onClick={() => addClauseBodyItem(index)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить подпункт
+              </Button>
+            </div>
           </div>
         ))}
       </div>
