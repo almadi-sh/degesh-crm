@@ -8,6 +8,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
+from pathlib import Path
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
@@ -752,21 +753,33 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     buffer.seek(0)
     return buffer.read()
 
+def _resolve_pdf_font_name() -> tuple[str, str]:
+    """
+    contract_document.py лежит в app/services/
+    fonts лежит в app/fonts/
+    """
 
-def _resolve_pdf_font_name() -> str:
-    font_candidates = [
-        ("DejaVuSerif", "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"),
-        ("LiberationSerif", "/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf"),
-    ]
+    base_dir = Path(__file__).resolve().parent.parent  # app/
+    font_dir = base_dir / "fonts"
 
-    for font_name, font_path in font_candidates:
-        try:
-            pdfmetrics.registerFont(TTFont(font_name, font_path))
-            return font_name
-        except Exception:
-            continue
+    regular_path = font_dir / "DejaVuSerif.ttf"
+    bold_path = font_dir / "DejaVuSerif-Bold.ttf"
+    print(regular_path, bold_path)
+    if not regular_path.exists():
+        return "Helvetica", "Helvetica-Bold"
 
-    return "Helvetica"
+    pdfmetrics.registerFont(TTFont("DejaVuSerif", str(regular_path)))
+
+    if bold_path.exists():
+        pdfmetrics.registerFont(TTFont("DejaVuSerif-Bold", str(bold_path)))
+        pdfmetrics.registerFontFamily(
+            "DejaVuSerif",
+            normal="DejaVuSerif",
+            bold="DejaVuSerif-Bold",
+        )
+        return "DejaVuSerif", "DejaVuSerif-Bold"
+
+    return "DejaVuSerif", "DejaVuSerif"
 
 
 def _draw_wrapped_text(
@@ -780,11 +793,12 @@ def _draw_wrapped_text(
     font_size: float,
     y_bottom: float,
 ) -> float:
-    paragraphs = [part.strip() for part in str(text).split("\n")]
+    paragraphs = [part.rstrip() for part in str(text).split("\n")]
     y = y_top
 
     for paragraph in paragraphs:
         words = paragraph.split()
+
         if not words:
             y -= line_height
             if y <= y_bottom:
@@ -794,22 +808,27 @@ def _draw_wrapped_text(
             continue
 
         current = words[0]
+
         for word in words[1:]:
             candidate = f"{current} {word}"
+
             if pdf.stringWidth(candidate, font_name, font_size) <= max_width:
                 current = candidate
                 continue
 
             pdf.drawString(x_left, y, current)
             y -= line_height
+
             if y <= y_bottom:
                 pdf.showPage()
                 pdf.setFont(font_name, font_size)
                 y = A4[1] - 20 * mm
+
             current = word
 
         pdf.drawString(x_left, y, current)
         y -= line_height
+
         if y <= y_bottom:
             pdf.showPage()
             pdf.setFont(font_name, font_size)
@@ -821,35 +840,45 @@ def _draw_wrapped_text(
 def _render_contract_document_pdf_bytes(contract: Contract, document_payload: dict) -> bytes:
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
-    font_name = _resolve_pdf_font_name()
+
+    font_regular, font_bold = _resolve_pdf_font_name()
+
     font_size = 11
     line_height = 6.5 * mm
+
     left_margin = 20 * mm
     right_margin = A4[0] - 20 * mm
     top_margin = A4[1] - 20 * mm
     bottom_margin = 20 * mm
+
     content_width = right_margin - left_margin
     y = top_margin
 
     header = document_payload.get("header", {})
+
     title = str(header.get("title", "Договор")).strip() or "Договор"
     contract_number = str(header.get("contract_number", contract.contract_number)).strip()
+
     if contract_number and not contract_number.startswith("№"):
         contract_number = f"№{contract_number}"
 
     heading = f"{title} {contract_number}".strip()
-    pdf.setFont(font_name, 13)
-    heading_width = pdf.stringWidth(heading, font_name, 13)
+
+    pdf.setFont(font_bold, 13)
+    heading_width = pdf.stringWidth(heading, font_bold, 13)
     pdf.drawString(left_margin + max((content_width - heading_width) / 2, 0), y, heading)
     y -= line_height
 
     city = str(header.get("city", "г. Астана")).strip()
     contract_date = str(header.get("date", "")).strip()
-    pdf.setFont(font_name, font_size)
+
+    pdf.setFont(font_regular, font_size)
     pdf.drawString(left_margin, y, city)
+
     date_text = f"Дата {contract_date}".strip()
-    date_width = pdf.stringWidth(date_text, font_name, font_size)
+    date_width = pdf.stringWidth(date_text, font_regular, font_size)
     pdf.drawString(max(right_margin - date_width, left_margin), y, date_text)
+
     y -= line_height * 1.2
 
     y = _draw_wrapped_text(
@@ -859,16 +888,18 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
         y,
         content_width,
         line_height,
-        font_name,
+        font_regular,
         font_size,
         bottom_margin,
     )
 
     for clause in document_payload.get("clauses", []):
         clause_title = str((clause or {}).get("title", "")).strip()
+
         if clause_title:
             y -= 2 * mm
-            pdf.setFont(font_name, 12)
+            pdf.setFont(font_bold, 12)
+
             y = _draw_wrapped_text(
                 pdf,
                 clause_title,
@@ -876,11 +907,12 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
                 y,
                 content_width,
                 line_height,
-                font_name,
+                font_bold,
                 12,
                 bottom_margin,
             )
-            pdf.setFont(font_name, font_size)
+
+            pdf.setFont(font_regular, font_size)
 
         blocks = _get_clause_blocks(clause)
         clause_id = str((clause or {}).get("id", "")).strip()
@@ -889,6 +921,7 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
         if blocks:
             for block in blocks:
                 block_type = (block or {}).get("type")
+
                 if block_type == "paragraph":
                     text = str((block or {}).get("text", "")).strip()
                     if text:
@@ -899,16 +932,19 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
                             y,
                             content_width,
                             line_height,
-                            font_name,
+                            font_regular,
                             font_size,
                             bottom_margin,
                         )
+
                 elif block_type == "numbered":
                     for item in (block or {}).get("items") or []:
                         item_text = str(item).strip()
                         if not item_text:
                             continue
+
                         prefix = f"{clause_id}.{numbered_index}. " if clause_id else f"{numbered_index}. "
+
                         y = _draw_wrapped_text(
                             pdf,
                             f"{prefix}{item_text}",
@@ -916,11 +952,12 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
                             y,
                             content_width,
                             line_height,
-                            font_name,
+                            font_regular,
                             font_size,
                             bottom_margin,
                         )
                         numbered_index += 1
+
                 elif block_type == "bullets":
                     for item in (block or {}).get("items") or []:
                         item_text = str(item).strip()
@@ -932,13 +969,14 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
                                 y,
                                 content_width,
                                 line_height,
-                                font_name,
+                                font_regular,
                                 font_size,
                                 bottom_margin,
                             )
 
     y -= line_height
-    pdf.setFont(font_name, 12)
+    pdf.setFont(font_bold, 12)
+
     y = _draw_wrapped_text(
         pdf,
         "Подписи сторон:",
@@ -946,27 +984,33 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
         y,
         content_width,
         line_height,
-        font_name,
+        font_bold,
         12,
         bottom_margin,
     )
 
     signatures = document_payload.get("signatures", {})
+
     seller_label = str(signatures.get("seller_label", "«Продавец»")).strip()
     buyer_label = str(signatures.get("buyer_label", "«Покупатель»")).strip()
+
     seller_position = str(signatures.get("seller_position", "Директор")).strip()
     buyer_position = str(signatures.get("buyer_position", "Директор")).strip()
+
     seller_name = str(signatures.get("seller_name", "")).strip()
     buyer_name = str(signatures.get("buyer_name", "")).strip()
+
     seller_stamp = str(signatures.get("seller_stamp", "")).strip()
     buyer_stamp = str(signatures.get("buyer_stamp", "")).strip()
 
     column_gap = 10 * mm
     column_width = (content_width - column_gap) / 2
+
     left_column_x = left_margin
     right_column_x = left_margin + column_width + column_gap
 
-    pdf.setFont(font_name, font_size)
+    pdf.setFont(font_regular, font_size)
+
     y = _draw_wrapped_text(
         pdf,
         seller_label,
@@ -974,10 +1018,11 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
         y,
         column_width,
         line_height,
-        font_name,
+        font_regular,
         font_size,
         bottom_margin,
     )
+
     right_y = _draw_wrapped_text(
         pdf,
         buyer_label,
@@ -985,10 +1030,11 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
         y + line_height,
         column_width,
         line_height,
-        font_name,
+        font_regular,
         font_size,
         bottom_margin,
     )
+
     y = min(y, right_y)
 
     for left_text, right_text in [
@@ -1003,10 +1049,11 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
             y,
             column_width,
             line_height,
-            font_name,
+            font_regular,
             font_size,
             bottom_margin,
         )
+
         right_y = _draw_wrapped_text(
             pdf,
             right_text,
@@ -1014,10 +1061,11 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
             y,
             column_width,
             line_height,
-            font_name,
+            font_regular,
             font_size,
             bottom_margin,
         )
+
         y = min(left_y, right_y)
 
     pdf.save()
@@ -1034,3 +1082,4 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
         else build_default_contract_document(contract)
     )
     return _render_contract_document_pdf_bytes(contract, document_payload)
+
