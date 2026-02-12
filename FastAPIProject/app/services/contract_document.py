@@ -45,13 +45,13 @@ def _extract_clause_body_items(clause_id: str, body: str) -> list[str]:
 
 
 def _get_clause_blocks(clause: dict) -> list[dict]:
-    blocks = clause.get("blocks") or []
-    if blocks:
-        return blocks
-
     clause_id = str(clause.get("id", "")).strip()
     clause_body = clause.get("body")
+    blocks = clause.get("blocks") or []
 
+    # `body` is what the current UI edits. If `blocks` are sent together with stale
+    # values, we should rebuild them from `body` so exported/previewed content
+    # reflects the latest user changes.
     if isinstance(clause_body, list):
         items = [str(item).strip() for item in clause_body if str(item).strip()]
         clause["body"] = items
@@ -63,6 +63,9 @@ def _get_clause_blocks(clause: dict) -> list[dict]:
         clause["body"] = normalized_items
         clause["blocks"] = [{"type": "numbered", "items": normalized_items}] if normalized_items else []
         return clause["blocks"]
+
+    if blocks:
+        return blocks
 
     clause["body"] = []
     clause["blocks"] = []
