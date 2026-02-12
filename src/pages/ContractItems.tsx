@@ -369,18 +369,20 @@ export default function ContractItems() {
             }
           }}
         >
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle className="font-display text-xl">
-                Manage items for {activeContractId ? contractsById.get(activeContractId)?.contract_number : ""}
-              </DialogTitle>
-            </DialogHeader>
-            <Tabs defaultValue="items" className="mt-4">
-              <TabsList>
+          <DialogContent className="max-w-4xl p-0">
+            <div className="flex max-h-[90vh] flex-col">
+              <DialogHeader className="px-6 pt-6">
+                <DialogTitle className="font-display text-xl">
+                  Manage items for {activeContractId ? contractsById.get(activeContractId)?.contract_number : ""}
+                </DialogTitle>
+              </DialogHeader>
+              <Tabs defaultValue="items" className="mt-4 flex min-h-0 flex-1 flex-col px-6">
+                <TabsList>
                 <TabsTrigger value="items">Items</TabsTrigger>
                 <TabsTrigger value="contract">Contract</TabsTrigger>
-              </TabsList>
-              <TabsContent value="items">
+                </TabsList>
+                <div className="min-h-0 flex-1 overflow-y-auto pb-6 pr-2">
+                  <TabsContent value="items">
                 <div className="space-y-6">
                   <div className="grid grid-cols-12 gap-3 items-end rounded-lg border border-border p-4">
                     <div className="col-span-4 space-y-2">
@@ -604,8 +606,8 @@ export default function ContractItems() {
                     </Table>
                   </div>
                 </div>
-              </TabsContent>
-              <TabsContent value="contract">
+                  </TabsContent>
+                  <TabsContent value="contract">
                 {activeContract ? (
                   isContractConfirmed ? (
                     <div className="space-y-6">
@@ -697,12 +699,14 @@ export default function ContractItems() {
                     Select a contract to view its document.
                   </div>
                 )}
-              </TabsContent>
-            </Tabs>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={closeManageDialog}>
-                Close
-              </Button>
+                  </TabsContent>
+                </div>
+              </Tabs>
+              <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
+                <Button variant="outline" onClick={closeManageDialog}>
+                  Close
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
