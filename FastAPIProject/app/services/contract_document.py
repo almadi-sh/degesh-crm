@@ -12,36 +12,20 @@ from docx.shared import Cm, Pt
 from app.models.contract import Contract
 
 
-def _body_to_blocks(clause_id: str, body: str) -> list[dict]:
-    blocks: list[dict] = []
-    numbered_items: list[str] = []
-    bullet_items: list[str] = []
-
-    def flush_numbered():
-        nonlocal numbered_items
-        if numbered_items:
-            blocks.append({"type": "numbered", "items": numbered_items})
-            numbered_items = []
-
-    def flush_bullets():
-        nonlocal bullet_items
-        if bullet_items:
-            blocks.append({"type": "bullets", "items": bullet_items})
-            bullet_items = []
-
+def _extract_clause_body_items(clause_id: str, body: str) -> list[str]:
+    items: list[str] = []
     clause_numbered_pattern = re.compile(rf"^{re.escape(clause_id)}\.\d+(?:\.\d+)*\.\s*(.+)$") if clause_id else None
     generic_numbered_pattern = re.compile(r"^\d+(?:\.\d+)*[.)]\s*(.+)$")
 
     for raw_line in body.split("\n"):
         line = raw_line.strip()
         if not line:
-            flush_numbered()
-            flush_bullets()
             continue
 
         if line.startswith("-"):
-            flush_numbered()
-            bullet_items.append(line.lstrip("-").strip())
+            cleaned = line.lstrip("-").strip()
+            if cleaned:
+                items.append(cleaned)
             continue
 
         numbered_text = ""
@@ -55,17 +39,9 @@ def _body_to_blocks(clause_id: str, body: str) -> list[dict]:
             if generic_match:
                 numbered_text = generic_match.group(1).strip()
 
-        if numbered_text:
-            flush_bullets()
-            numbered_items.append(numbered_text)
-            continue
+        items.append(numbered_text or line)
 
-        flush_bullets()
-        numbered_items.append(line)
-
-    flush_numbered()
-    flush_bullets()
-    return blocks
+    return items
 
 
 def _get_clause_blocks(clause: dict) -> list[dict]:
@@ -74,14 +50,23 @@ def _get_clause_blocks(clause: dict) -> list[dict]:
         return blocks
 
     clause_id = str(clause.get("id", "")).strip()
-    clause_body = (clause.get("body") or "").strip()
-    if not clause_body:
-        clause["blocks"] = []
-        return []
+    clause_body = clause.get("body")
 
-    blocks = _body_to_blocks(clause_id, clause_body)
-    clause["blocks"] = blocks
-    return blocks
+    if isinstance(clause_body, list):
+        items = [str(item).strip() for item in clause_body if str(item).strip()]
+        clause["body"] = items
+        clause["blocks"] = [{"type": "numbered", "items": items}] if items else []
+        return clause["blocks"]
+
+    if isinstance(clause_body, str):
+        normalized_items = _extract_clause_body_items(clause_id, clause_body)
+        clause["body"] = normalized_items
+        clause["blocks"] = [{"type": "numbered", "items": normalized_items}] if normalized_items else []
+        return clause["blocks"]
+
+    clause["body"] = []
+    clause["blocks"] = []
+    return []
 
 
 def build_default_contract_document(contract: Contract) -> dict:
@@ -520,9 +505,10 @@ def render_contract_document_text(contract: Contract) -> str:
                         if text:
                             sections.append(f"- {text}")
         else:
-            body = (clause.get("body") or "").strip()
-            if body:
-                sections.append(body)
+            for item in clause.get("body") or []:
+                text = str(item).strip()
+                if text:
+                    sections.append(text)
 
         sections.append("")
 
@@ -585,17 +571,6 @@ def _add_justified_paragraph(doc: Document, text: str, spacing_after: Pt | None 
     return paragraph
 
 
-def _add_clause_body_from_lines(doc: Document, lines: list[str]) -> None:
-    for line in lines:
-        clean_line = line.strip()
-        if not clean_line:
-            continue
-        if clean_line.startswith("-"):
-            _add_justified_paragraph(doc, f"- {clean_line.lstrip('-').strip()}")
-        else:
-            _add_justified_paragraph(doc, clean_line)
-
-
 def _add_clause_blocks(doc: Document, clause: dict) -> None:
     blocks = _get_clause_blocks(clause)
     if blocks:
@@ -622,9 +597,10 @@ def _add_clause_blocks(doc: Document, clause: dict) -> None:
                         _add_justified_paragraph(doc, f"- {text}")
         return
 
-    clause_body = (clause.get("body") or "").strip()
-    if clause_body:
-        _add_clause_body_from_lines(doc, clause_body.split("\n"))
+    for item in clause.get("body") or []:
+        text = str(item).strip()
+        if text:
+            _add_justified_paragraph(doc, text)
 
 
 def render_contract_document_docx(contract: Contract) -> bytes:

@@ -31,7 +31,7 @@ ContractDocumentBlock = (
 class ContractDocumentClause(BaseModel):
     id: str
     title: str
-    body: str | None = None
+    body: List[str] | None = None
     blocks: List[ContractDocumentBlock] | None = None
     deletable: bool
 
