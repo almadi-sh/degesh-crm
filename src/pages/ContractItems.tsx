@@ -34,7 +34,7 @@ import { FileSpreadsheet, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getContractOwnerMap, getOwnedContractIds } from "@/lib/contractOwnership";
 import { ContractDocumentEditor } from "@/components/contracts/ContractDocumentEditor";
-import { ContractDocument, useUpdateContractDocument } from "@/hooks/useContracts";
+import { ContractDocument, useResetContractDocument, useUpdateContractDocument } from "@/hooks/useContracts";
 import { toast } from "sonner";
 import { apiFetchResponse } from "@/lib/apiClient";
 
@@ -64,6 +64,7 @@ export default function ContractItems() {
   const updateContractItem = useUpdateContractItem();
   const deleteContractItem = useDeleteContractItem();
   const updateContractDocument = useUpdateContractDocument();
+  const resetContractDocument = useResetContractDocument();
 
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [activeContractId, setActiveContractId] = useState<number | null>(null);
@@ -256,7 +257,9 @@ export default function ContractItems() {
         setIsContractDocumentDirty(false);
       }
 
-      const response = await apiFetchResponse(`/api/v1/contracts/${activeContract.id}/document/export`);
+      const response = await apiFetchResponse(`/api/v1/contracts/${activeContract.id}/document/export?ts=${Date.now()}`, {
+        cache: "no-store",
+      });
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const disposition = response.headers.get("Content-Disposition") ?? "";
@@ -275,6 +278,15 @@ export default function ContractItems() {
       const message = error instanceof Error ? error.message : "Failed to download contract";
       toast.error(message);
     }
+  };
+
+  const handleResetContractDocument = async () => {
+    if (!activeContract) return;
+    if (!window.confirm("Reset contract text to default template?")) return;
+
+    await resetContractDocument.mutateAsync({ id: activeContract.id });
+    setDraftContractDocument(null);
+    setIsContractDocumentDirty(false);
   };
 
   return (
@@ -698,7 +710,9 @@ export default function ContractItems() {
                       <ContractDocumentEditor
                         contract={activeContract}
                         isSaving={updateContractDocument.isPending}
+                        isResetting={resetContractDocument.isPending}
                         onDocumentChange={handleDocumentChange}
+                        onResetToDefault={handleResetContractDocument}
                         onSave={async (document) => {
                           await updateContractDocument.mutateAsync({
                             id: activeContract.id,

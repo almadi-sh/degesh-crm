@@ -179,3 +179,22 @@ export function useUpdateContractDocument() {
     },
   });
 }
+
+export function useResetContractDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id }: { id: number }) => {
+      return apiFetch<Contract>(`/api/v1/contracts/${id}/document/reset`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      toast.success("Contract document reset to default successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to reset contract document: " + error.message);
+    },
+  });
+}

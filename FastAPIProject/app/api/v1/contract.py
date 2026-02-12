@@ -96,6 +96,19 @@ def update_contract_document(
     return contract
 
 
+@router.post("/{contract_id}/document/reset", response_model=ContractOut)
+def reset_contract_document(contract_id: int, db: Session = Depends(get_db)):
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    contract.contract_document = build_default_contract_document(contract)
+    db.commit()
+    db.refresh(contract)
+    logger.info("POST /contracts/%s/document/reset", contract_id)
+    contract.contract_document = ensure_contract_document(contract)
+    return contract
+
+
 @router.get("/{contract_id}/document/export")
 @router.get("/{contract_id}/document/export/", include_in_schema=False)
 def export_contract_document(contract_id: int, db: Session = Depends(get_db)):
