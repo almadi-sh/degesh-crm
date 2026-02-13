@@ -17,14 +17,18 @@ const navigation = [
   { name: "Contract Items", href: "/contract-items", icon: FileText },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  className?: string;
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ className, onNavigate }: SidebarProps) {
   const location = useLocation();
   const { user, logout } = useAuth();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar">
+    <aside className={cn("fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar", className)}>
       <div className="flex h-full flex-col">
-        {/* Logo */}
         <div className="flex h-20 items-center gap-3 px-6 border-b border-sidebar-border">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary">
             <Leaf className="h-6 w-6 text-sidebar-primary-foreground" />
@@ -35,7 +39,6 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 space-y-1 p-4">
           {navigation.map((item) => {
             const isActive = location.pathname === item.href;
@@ -43,6 +46,7 @@ export function Sidebar() {
               <Link
                 key={item.name}
                 to={item.href}
+                onClick={onNavigate}
                 className={cn(
                   "nav-link",
                   isActive && "nav-link-active"
@@ -55,7 +59,6 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Footer */}
         <div className="p-4 border-t border-sidebar-border space-y-3">
           {user && (
             <div className="rounded-lg bg-sidebar-accent p-4 space-y-2">
