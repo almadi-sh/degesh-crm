@@ -87,14 +87,14 @@ export default function Contracts() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground font-display">Contracts</h1>
             <p className="text-muted-foreground mt-1">Manage agreements with your customers</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="w-full gap-2 sm:w-auto">
                 <Plus className="h-4 w-4" />
                 New Contract
               </Button>
@@ -103,7 +103,7 @@ export default function Contracts() {
               <DialogHeader>
                 <DialogTitle className="font-display text-xl">Create New Contract</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+              <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="customer_id">Customer *</Label>
                   <Select
@@ -122,7 +122,7 @@ export default function Contracts() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex justify-end gap-3 pt-4">
+                <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
@@ -150,7 +150,7 @@ export default function Contracts() {
         </div>
 
         {/* Table */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Loading contracts...</div>
           ) : filteredContracts.length === 0 ? (
@@ -158,7 +158,7 @@ export default function Contracts() {
               {searchQuery ? "No contracts found matching your search" : "No contracts yet. Create your first contract!"}
             </div>
           ) : (
-            <Table>
+            <Table className="min-w-[980px]">
               <TableHeader>
                 <TableRow className="table-header">
                   <TableHead>Contract</TableHead>
