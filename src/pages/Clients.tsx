@@ -60,14 +60,14 @@ export default function Clients() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground font-display">Customers</h1>
             <p className="text-muted-foreground mt-1">Manage your farm partners and customers</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="w-full gap-2 sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Add Customer
               </Button>
@@ -76,8 +76,8 @@ export default function Clients() {
               <DialogHeader>
                 <DialogTitle className="font-display text-xl">Add New Customer</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name *</Label>
                     <Input
@@ -95,7 +95,7 @@ export default function Clients() {
                       onChange={(e) => setFormData({ ...formData, bin_iin: e.target.value || null })}
                     />
                   </div>
-                  <div className="space-y-2 col-span-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="address">Address</Label>
                     <Input
                       id="address"
@@ -104,7 +104,7 @@ export default function Clients() {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-3 pt-4">
+                <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
@@ -129,7 +129,7 @@ export default function Clients() {
         </div>
 
         {/* Table */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Loading customers...</div>
           ) : filteredClients.length === 0 ? (
@@ -137,7 +137,7 @@ export default function Clients() {
               {searchQuery ? "No customers found matching your search" : "No customers yet. Add your first customer!"}
             </div>
           ) : (
-            <Table>
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow className="table-header">
                   <TableHead>Customer</TableHead>

@@ -48,7 +48,7 @@ export default function Dashboard() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground font-display">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-foreground font-display sm:text-3xl">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Welcome back! Here's your farm business overview.</p>
         </div>
 
@@ -90,13 +90,13 @@ export default function Dashboard() {
           {/* Inventory Snapshot */}
           <div className="lg:col-span-2">
             <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-lg font-semibold text-foreground">Inventory Snapshot</h3>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowFullInventory((prev) => !prev)}
-                  className="text-primary hover:text-primary"
+                  className="w-full text-primary hover:text-primary sm:w-auto"
                 >
                   {showFullInventory ? "Show less" : "View all inventory"}
                 </Button>
@@ -109,14 +109,14 @@ export default function Dashboard() {
                   {(showFullInventory ? products : products.slice(0, 5)).map((product) => {
                     const stock = inventoryByProductId.get(product.id);
                     return (
-                      <div key={product.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div key={product.id} className="flex flex-col gap-2 rounded-lg bg-muted/50 p-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="font-medium text-foreground">{product.name}</p>
                           <p className="text-sm text-muted-foreground">
                             {product.unit} • ${product.price.toLocaleString()}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className="sm:text-right">
                           <p className="font-semibold text-foreground">
                             {stock?.quantity_available ?? 0} available
                           </p>
