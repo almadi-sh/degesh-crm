@@ -85,3 +85,5 @@ test.db
 # =========================
 coverage/
 htmlcov/
+
+bun.lockb
