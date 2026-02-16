@@ -39,7 +39,7 @@ export function useContractItems(filters?: ContractItemFilters) {
       if (filters?.customer_id) params.set("customer_id", String(filters.customer_id));
       if (filters?.contract_id) params.set("contract_id", String(filters.contract_id));
       const query = params.toString();
-      return apiFetch<ContractItem[]>(`/api/v1/contract-items${query ? `?${query}` : ""}`);
+      return apiFetch<ContractItem[]>(`/api/v1/contract-items/${query ? `?${query}` : ""}`);
     },
   });
 }
@@ -49,7 +49,7 @@ export function useCreateContractItem() {
 
   return useMutation({
     mutationFn: async (payload: ContractItemInsert) => {
-      return apiFetch<ContractItem>("/api/v1/contract-items", {
+      return apiFetch<ContractItem>("/api/v1/contract-items/", {
         method: "POST",
         body: JSON.stringify(payload),
       });

@@ -21,7 +21,7 @@ export function useProducts(filters?: ProductFilters) {
       const params = new URLSearchParams();
       if (filters?.name) params.set("name", filters.name);
       const query = params.toString();
-      return apiFetch<Product[]>(`/api/v1/products${query ? `?${query}` : ""}`);
+      return apiFetch<Product[]>(`/api/v1/products/${query ? `?${query}` : ""}`);
     },
   });
 }

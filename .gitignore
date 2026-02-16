@@ -16,6 +16,7 @@ lerna-debug.log*
 node_modules/
 dist/
 dist-ssr/
+.vite/
 *.local
 
 
@@ -42,8 +43,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.pdb
-*.pkl
 
 *.egg-info/
 .pytest_cache/
@@ -56,7 +55,6 @@ FastAPIProject/.venv/
 
 # Python build
 build/
-dist/
 
 
 # =========================
@@ -80,17 +78,10 @@ test.db
 # =========================
 *.pid
 *.seed
-*.log
 
 
 # =========================
-# Frontend build cache (Vite)
-# =========================
-.vite/
-
-
-# =========================
-# Misc
+# Coverage / Reports
 # =========================
 coverage/
 htmlcov/

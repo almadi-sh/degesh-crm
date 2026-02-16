@@ -21,7 +21,7 @@ export function useInventory(filters?: InventoryFilters) {
       const params = new URLSearchParams();
       if (filters?.product_id) params.set("product_id", String(filters.product_id));
       const query = params.toString();
-      return apiFetch<InventoryItem[]>(`/api/v1/inventory${query ? `?${query}` : ""}`);
+      return apiFetch<InventoryItem[]>(`/api/v1/inventory/${query ? `?${query}` : ""}`);
     },
   });
 }

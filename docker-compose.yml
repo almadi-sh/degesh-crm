@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: degesh_db
+    restart: always
+    environment:
+      POSTGRES_USER: admin_almadi
+      POSTGRES_PASSWORD: 01180919a
+      POSTGRES_DB: crm_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./FastAPIProject
+    container_name: degesh_backend
+    restart: always
+    env_file:
+      - ./FastAPIProject/.env.docker
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./FastAPIProject:/app
+
+  frontend:
+    build:
+      context: .
+    container_name: degesh_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_PROXY_TARGET=http://backend:8000
+
+volumes:
+  postgres_data:

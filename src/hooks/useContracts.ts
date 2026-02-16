@@ -83,7 +83,7 @@ export function useContracts(filters?: ContractFilters) {
       if (filters?.customer_id) params.set("customer_id", String(filters.customer_id));
       if (filters?.contract_number) params.set("contract_number", filters.contract_number);
       const query = params.toString();
-      return apiFetch<Contract[]>(`/api/v1/contracts${query ? `?${query}` : ""}`);
+      return apiFetch<Contract[]>(`/api/v1/contracts/${query ? `?${query}` : ""}`);
     },
   });
 }
@@ -106,7 +106,7 @@ export function useCreateContract() {
 
   return useMutation({
     mutationFn: async (contract: ContractInsert) => {
-      return apiFetch<Contract>("/api/v1/contracts", {
+      return apiFetch<Contract>("/api/v1/contracts/", {
         method: "POST",
         body: JSON.stringify(contract),
       });

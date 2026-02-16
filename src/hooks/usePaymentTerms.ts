@@ -26,7 +26,7 @@ export function useCreatePaymentTerm() {
 
   return useMutation({
     mutationFn: async (payload: PaymentTermInsert) => {
-      return apiFetch<PaymentTerm>("/api/v1/payment-terms", {
+      return apiFetch<PaymentTerm>("/api/v1/payment-terms/", {
         method: "POST",
         body: JSON.stringify(payload),
       });
