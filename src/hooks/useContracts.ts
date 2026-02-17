@@ -23,7 +23,9 @@ export interface ContractDocumentHeader {
 export type ContractDocumentBlock =
   | { type: "paragraph"; text: string }
   | { type: "numbered"; items: string[] }
-  | { type: "bullets"; items: string[] };
+  | { type: "bullets"; items: string[] }
+  | { type: "paren_numbered"; items: string[] }
+  | { type: "explicit_numbered"; items: { marker: string; text: string }[] };
 
 export interface ContractDocumentClause {
   id: string;
