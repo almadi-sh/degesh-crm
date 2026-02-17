@@ -929,7 +929,10 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     requisites_table.autofit = True
 
     seller_cell = requisites_table.cell(0, 0)
-    seller_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    seller_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
+    seller_cell.paragraphs[0].paragraph_format.space_before = Pt(0)
+    seller_cell.paragraphs[0].paragraph_format.space_after = Pt(0)
+    _set_line_spacing(seller_cell.paragraphs[0])
     seller_label_run = seller_cell.paragraphs[0].add_run(seller_label)
     seller_label_run.bold = True
 
@@ -938,15 +941,24 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
         if line_text:
             paragraph = seller_cell.add_paragraph(line_text)
             paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            paragraph.paragraph_format.space_before = Pt(0)
+            paragraph.paragraph_format.space_after = Pt(0)
+            _set_line_spacing(paragraph)
 
     buyer_cell = requisites_table.cell(0, 1)
-    buyer_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    buyer_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
+    buyer_cell.paragraphs[0].paragraph_format.space_before = Pt(0)
+    buyer_cell.paragraphs[0].paragraph_format.space_after = Pt(0)
+    _set_line_spacing(buyer_cell.paragraphs[0])
     buyer_label_run = buyer_cell.paragraphs[0].add_run(buyer_label)
     buyer_label_run.bold = True
 
     for line in _build_buyer_requisites_lines(signatures):
         paragraph = buyer_cell.add_paragraph(line)
         paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = Pt(0)
+        _set_line_spacing(paragraph)
 
     signatures_table = doc.add_table(rows=3, cols=2)
     signatures_table.autofit = True
@@ -959,6 +971,14 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
 
     signatures_table.cell(2, 0).text = f"{seller_name}\n{seller_stamp}" if seller_stamp else seller_name
     signatures_table.cell(2, 1).text = f"{buyer_name}\n{buyer_stamp}" if buyer_stamp else buyer_name
+
+    for row in signatures_table.rows:
+        for cell in row.cells:
+            for paragraph in cell.paragraphs:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                paragraph.paragraph_format.space_before = Pt(0)
+                paragraph.paragraph_format.space_after = Pt(0)
+                _set_line_spacing(paragraph)
 
     buffer = BytesIO()
     doc.save(buffer)
