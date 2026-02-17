@@ -677,6 +677,30 @@ def _add_clause_blocks(doc: Document, clause: dict) -> None:
             _add_justified_paragraph(doc, text)
 
 
+def _build_buyer_requisites_lines(signatures: dict) -> list[str]:
+    lines: list[str] = []
+    buyer_name = str(signatures.get("linked_customer_name", "")).strip()
+    if buyer_name:
+        lines.append(buyer_name)
+
+    field_labels = [
+        ("buyer_legal_address", "Юр. адрес"),
+        ("buyer_bin", "БИН"),
+        ("buyer_bank", "Банк"),
+        ("buyer_iik", "Расчетный счет"),
+        ("buyer_bik", "БИК"),
+        ("buyer_phone", "Конт. тел."),
+        ("buyer_email", "Email"),
+    ]
+
+    for field, label in field_labels:
+        value = str(signatures.get(field, "")).strip()
+        if value:
+            lines.append(f"{label}: {value}")
+
+    return lines
+
+
 def render_contract_document_docx(contract: Contract, document_payload_override: dict | None = None) -> bytes:
     document_payload = (
         normalize_contract_document_payload(document_payload_override)
@@ -743,45 +767,49 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
 
         _add_clause_blocks(doc, clause)
 
-    doc.add_paragraph("")
-    buyer_requisites_title = doc.add_paragraph("Реквизиты покупателя:")
-    buyer_requisites_title.runs[0].bold = True
-    for line in [
-        f"Клиент: {signatures.get('linked_customer_name', '')}",
-        f"Место исполнения: {signatures.get('execution_city', '')}",
-        f"Предмет поставки: {signatures.get('supply_subject', '')}",
-        f"Юр. адрес: {signatures.get('buyer_legal_address', '')}",
-        f"БИН: {signatures.get('buyer_bin', '')}",
-        f"Банк: {signatures.get('buyer_bank', '')}",
-        f"БИК: {signatures.get('buyer_bik', '')}",
-        f"ИИК: {signatures.get('buyer_iik', '')}",
-        f"Конт. тел: {signatures.get('buyer_phone', '')}",
-        f"Email: {signatures.get('buyer_email', '')}",
-    ]:
-        if line.split(': ', 1)[1]:
-            doc.add_paragraph(line)
+    seller_label = str(signatures.get("seller_label", "«Продавец»")).strip()
+    buyer_label = str(signatures.get("buyer_label", "«Покупатель»")).strip()
+    seller_position = str(signatures.get("seller_position", "Директор")).strip()
+    buyer_position = str(signatures.get("buyer_position", "Директор")).strip()
+    seller_name = str(signatures.get("seller_name", "")).strip()
+    buyer_name = str(signatures.get("buyer_name", "")).strip()
+    seller_stamp = str(signatures.get("seller_stamp", "")).strip()
+    buyer_stamp = str(signatures.get("buyer_stamp", "")).strip()
 
-    seller_requisites_title = doc.add_paragraph("Реквизиты продавца:")
-    seller_requisites_title.runs[0].bold = True
-    doc.add_paragraph(signatures.get("seller_details", ""))
+    requisites_table = doc.add_table(rows=1, cols=2)
+    requisites_table.autofit = True
 
-    signatures_line = doc.add_paragraph("Подписи сторон:")
-    signatures_line.runs[0].bold = True
+    seller_cell = requisites_table.cell(0, 0)
+    seller_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    seller_label_run = seller_cell.paragraphs[0].add_run(seller_label)
+    seller_label_run.bold = True
+
+    for line in str(signatures.get("seller_details", "")).split("\n"):
+        line_text = line.strip()
+        if line_text:
+            paragraph = seller_cell.add_paragraph(line_text)
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
+    buyer_cell = requisites_table.cell(0, 1)
+    buyer_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    buyer_label_run = buyer_cell.paragraphs[0].add_run(buyer_label)
+    buyer_label_run.bold = True
+
+    for line in _build_buyer_requisites_lines(signatures):
+        paragraph = buyer_cell.add_paragraph(line)
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
     signatures_table = doc.add_table(rows=3, cols=2)
-    signatures_table.style = "Table Grid"
-    signatures_table.cell(0, 0).text = signatures.get("seller_label", "«Продавец»")
-    signatures_table.cell(0, 1).text = signatures.get("buyer_label", "«Покупатель»")
+    signatures_table.autofit = True
 
-    signatures_table.cell(1, 0).text = signatures.get("seller_position", "Директор")
-    signatures_table.cell(1, 1).text = signatures.get("buyer_position", "Директор")
+    signatures_table.cell(0, 0).text = seller_position
+    signatures_table.cell(0, 1).text = buyer_position
 
-    signatures_table.cell(2, 0).text = (
-        f"{signatures.get('seller_name', '')}\n{signatures.get('seller_stamp', '')}"
-    )
-    signatures_table.cell(2, 1).text = (
-        f"{signatures.get('buyer_name', '')}\n{signatures.get('buyer_stamp', '')}"
-    )
+    signatures_table.cell(1, 0).text = "____________________"
+    signatures_table.cell(1, 1).text = "____________________"
+
+    signatures_table.cell(2, 0).text = f"{seller_name}\n{seller_stamp}" if seller_stamp else seller_name
+    signatures_table.cell(2, 1).text = f"{buyer_name}\n{buyer_stamp}" if buyer_stamp else buyer_name
 
     buffer = BytesIO()
     doc.save(buffer)
@@ -1009,21 +1037,6 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
                                 bottom_margin,
                             )
 
-    y -= line_height
-    pdf.setFont(font_bold, 12)
-
-    y = _draw_wrapped_text(
-        pdf,
-        "Подписи сторон:",
-        left_margin,
-        y,
-        content_width,
-        line_height,
-        font_bold,
-        12,
-        bottom_margin,
-    )
-
     signatures = document_payload.get("signatures", {})
 
     seller_label = str(signatures.get("seller_label", "«Продавец»")).strip()
@@ -1044,8 +1057,10 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
     left_column_x = left_margin
     right_column_x = left_margin + column_width + column_gap
 
-    pdf.setFont(font_regular, font_size)
+    seller_requisites = [line.strip() for line in str(signatures.get("seller_details", "")).split("\n") if line.strip()]
+    buyer_requisites = _build_buyer_requisites_lines(signatures)
 
+    pdf.setFont(font_bold, font_size)
     y = _draw_wrapped_text(
         pdf,
         seller_label,
@@ -1053,7 +1068,7 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
         y,
         column_width,
         line_height,
-        font_regular,
+        font_bold,
         font_size,
         bottom_margin,
     )
@@ -1062,18 +1077,49 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
         pdf,
         buyer_label,
         right_column_x,
-        y + line_height,
+        y,
         column_width,
         line_height,
-        font_regular,
+        font_bold,
         font_size,
         bottom_margin,
     )
-
     y = min(y, right_y)
 
+    pdf.setFont(font_regular, font_size)
+    for index in range(max(len(seller_requisites), len(buyer_requisites))):
+        left_text = seller_requisites[index] if index < len(seller_requisites) else ""
+        right_text = buyer_requisites[index] if index < len(buyer_requisites) else ""
+        left_y = _draw_wrapped_text(
+            pdf,
+            left_text,
+            left_column_x,
+            y,
+            column_width,
+            line_height,
+            font_regular,
+            font_size,
+            bottom_margin,
+        )
+
+        right_y = _draw_wrapped_text(
+            pdf,
+            right_text,
+            right_column_x,
+            y,
+            column_width,
+            line_height,
+            font_regular,
+            font_size,
+            bottom_margin,
+        )
+
+        y = min(left_y, right_y)
+
+    y -= line_height
     for left_text, right_text in [
         (seller_position, buyer_position),
+        ("____________________", "____________________"),
         (seller_name, buyer_name),
         (seller_stamp, buyer_stamp),
     ]:
@@ -1117,4 +1163,3 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
         else build_default_contract_document(contract)
     )
     return _render_contract_document_pdf_bytes(contract, document_payload)
-
