@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from typing import List
 from app.schemas.customer import CustomerCreate, CustomerOut, CustomerUpdate
@@ -8,13 +9,19 @@ from app.api.deps import get_db
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
+
 @router.post("/", response_model=CustomerOut)
 def create_customer(data: CustomerCreate, db: Session = Depends(get_db)):
-    customer = Customer(**data.dict())
+    customer = Customer(**data.model_dump())
     db.add(customer)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Customer with this BIN/IIN already exists")
     db.refresh(customer)
     return customer
+
 
 @router.get("/", response_model=List[CustomerOut])
 def list_customers(
@@ -32,12 +39,14 @@ def list_customers(
         query = query.filter(Customer.address.ilike(f"%{address}%"))
     return query.all()
 
+
 @router.get("/{customer_id}", response_model=CustomerOut)
 def get_customer(customer_id: int, db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     return customer
+
 
 @router.put("/{customer_id}", response_model=CustomerOut)
 def update_customer(
@@ -48,12 +57,17 @@ def update_customer(
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
-    update_data = data.dict(exclude_unset=True)
+    update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(customer, key, value)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Customer with this BIN/IIN already exists")
     db.refresh(customer)
     return customer
+
 
 @router.delete("/{customer_id}", status_code=204)
 def delete_customer(customer_id: int, db: Session = Depends(get_db)):

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Contract, ContractDocument, ContractDocumentClause } from "@/hooks/useContracts";
+import { Client } from "@/hooks/useClients";
+import { KZ_BANKS, KZ_CITIES } from "@/lib/referenceData";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +11,8 @@ import { Plus, Trash2 } from "lucide-react";
 
 interface ContractDocumentEditorProps {
   contract: Contract;
+  customer?: Client;
+  salesCity?: string;
   onSave: (document: ContractDocument) => Promise<void>;
   onResetToDefault: () => Promise<void>;
   isSaving: boolean;
@@ -41,6 +46,8 @@ const cloneClauses = (clauses: ContractDocumentClause[]) =>
 
 export function ContractDocumentEditor({
   contract,
+  customer,
+  salesCity,
   onSave,
   onResetToDefault,
   isSaving,
@@ -70,6 +77,26 @@ export function ContractDocumentEditor({
   const header = document?.header;
   const signatures = document?.signatures;
   const clauses = useMemo(() => document?.clauses ?? [], [document]);
+
+  useEffect(() => {
+    if (!customer || !document) return;
+    setDocument((prev) => {
+      if (!prev) return prev;
+      const nextDocument = {
+        ...prev,
+        header: { ...prev.header, city: prev.header.city || (salesCity ? `г. ${salesCity}` : prev.header.city) },
+        signatures: {
+          ...prev.signatures,
+          linked_customer_name: prev.signatures.linked_customer_name || customer.name,
+          execution_city: prev.signatures.execution_city || customer.city || "",
+          sales_city: prev.signatures.sales_city || salesCity || "",
+          buyer_legal_address: prev.signatures.buyer_legal_address || customer.legal_address || customer.address || "",
+          buyer_bin: prev.signatures.buyer_bin || customer.bin_iin || "",
+        },
+      };
+      return nextDocument;
+    });
+  }, [customer, document, salesCity]);
 
   if (!document || !header || !signatures) {
     return (
@@ -267,6 +294,64 @@ export function ContractDocumentEditor({
       <div className="rounded-lg border border-border p-6 space-y-4">
         <h3 className="text-lg font-semibold text-foreground">Signatures</h3>
         <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Подвязка к клиенту</Label>
+            <Input value={signatures.linked_customer_name ?? ""} onChange={(event) => updateSignature("linked_customer_name", event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Место исполнения договора (отгрузка)</Label>
+            <Select value={signatures.execution_city ?? ""} onValueChange={(value) => updateSignature("execution_city", value)}>
+              <SelectTrigger><SelectValue placeholder="Город" /></SelectTrigger>
+              <SelectContent>{KZ_CITIES.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Предмет поставки</Label>
+            <Input value={signatures.supply_subject ?? ""} onChange={(event) => updateSignature("supply_subject", event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Город (подвязывается от продажника)</Label>
+            <Input value={signatures.sales_city ?? ""} onChange={(event) => updateSignature("sales_city", event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Покупатель: Юр. адрес</Label>
+            <Input value={signatures.buyer_legal_address ?? ""} onChange={(event) => updateSignature("buyer_legal_address", event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Покупатель: БИН</Label>
+            <Input value={signatures.buyer_bin ?? ""} onChange={(event) => updateSignature("buyer_bin", event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Покупатель: Банк</Label>
+            <Select value={signatures.buyer_bank ?? ""} onValueChange={(value) => {
+              updateSignature("buyer_bank", value);
+              const selected = KZ_BANKS.find((bank) => bank.name === value);
+              if (selected) updateSignature("buyer_bik", selected.bik);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Выборка банка" /></SelectTrigger>
+              <SelectContent>{KZ_BANKS.map((bank) => <SelectItem key={bank.bik} value={bank.name}>{bank.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Покупатель: БИК</Label>
+            <Input value={signatures.buyer_bik ?? ""} onChange={(event) => updateSignature("buyer_bik", event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Покупатель: ИИК (20 знаков)</Label>
+            <Input value={signatures.buyer_iik ?? ""} maxLength={20} onChange={(event) => updateSignature("buyer_iik", event.target.value.toUpperCase())} />
+          </div>
+          <div className="space-y-2">
+            <Label>Покупатель: Конт. тел</Label>
+            <Input value={signatures.buyer_phone ?? ""} onChange={(event) => updateSignature("buyer_phone", event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Покупатель: Email (optional)</Label>
+            <Input value={signatures.buyer_email ?? ""} onChange={(event) => updateSignature("buyer_email", event.target.value)} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Продавец (фиксировано для Дегеш)</Label>
+            <Textarea value={signatures.seller_details ?? ""} onChange={(event) => updateSignature("seller_details", event.target.value)} />
+          </div>
           <div className="space-y-2">
             <Label>Seller label</Label>
             <Input

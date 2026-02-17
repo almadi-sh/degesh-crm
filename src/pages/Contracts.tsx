@@ -418,6 +418,8 @@ export default function Contracts() {
 
                       <ContractDocumentEditor
                         contract={activeContract}
+                        customer={activeCustomer}
+                        salesCity={user?.city}
                         isSaving={updateContractDocument.isPending}
                         isResetting={resetContractDocument.isPending}
                         onDocumentChange={handleDocumentChange}

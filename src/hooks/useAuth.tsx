@@ -1,9 +1,12 @@
 import { createContext, useContext, useMemo, useState } from "react";
+import { DEFAULT_EMPLOYEE, DEMO_EMPLOYEES, EmployeeRole } from "@/lib/employees";
 
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  role: EmployeeRole;
+  city: string;
 }
 
 interface AuthContextValue {
@@ -14,13 +17,7 @@ interface AuthContextValue {
 
 const AUTH_STORAGE_KEY = "authUser";
 
-const DEMO_USER: AuthUser = {
-  id: "employee-001",
-  name: "Дегеш",
-  email: "me@degeshcrm.local",
-};
-
-const DEMO_PASSWORD = "demo123";
+const DEMO_USER: AuthUser = DEFAULT_EMPLOYEE;
 const AUTH_BYPASS_ENABLED = (import.meta.env.VITE_BYPASS_EMPLOYEE_LOGIN ?? "true") === "true";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -49,10 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return DEMO_USER;
     }
 
-    if (email === DEMO_USER.email && password === DEMO_PASSWORD) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(DEMO_USER));
-      setUser(DEMO_USER);
-      return DEMO_USER;
+    const found = DEMO_EMPLOYEES.find((employee) => employee.email === email && employee.password === password);
+    if (found) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(found));
+      setUser(found);
+      return found;
     }
     throw new Error("Неверный логин или пароль");
   };

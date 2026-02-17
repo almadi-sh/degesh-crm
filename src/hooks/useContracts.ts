@@ -42,6 +42,18 @@ export interface ContractDocumentSignatures {
   buyer_name: string;
   seller_stamp: string;
   buyer_stamp: string;
+  linked_customer_name?: string;
+  execution_city?: string;
+  sales_city?: string;
+  supply_subject?: string;
+  buyer_legal_address?: string;
+  buyer_bin?: string;
+  buyer_bank?: string;
+  buyer_bik?: string;
+  buyer_iik?: string;
+  buyer_phone?: string;
+  buyer_email?: string;
+  seller_details?: string;
 }
 
 export interface ContractDocument {

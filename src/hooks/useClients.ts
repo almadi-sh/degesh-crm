@@ -5,8 +5,17 @@ import { toast } from "sonner";
 export interface Client {
   id: number;
   name: string;
+  legal_form?: string | null;
+  contract_signer_full_name?: string | null;
+  contract_signer_role?: string | null;
+  contract_signer_basis?: string | null;
   bin_iin?: string | null;
+  city?: string | null;
+  legal_address?: string | null;
   address?: string | null;
+  tax_regime?: string | null;
+  created_by_user?: string | null;
+  initial_contact_user?: string | null;
 }
 
 export type ClientInsert = Omit<Client, "id">;

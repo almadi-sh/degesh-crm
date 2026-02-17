@@ -4,11 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DEMO_EMPLOYEES } from "@/lib/employees";
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, user } = useAuth();
-  const [email, setEmail] = useState("me@degeshcrm.local");
+  const [email, setEmail] = useState(DEMO_EMPLOYEES[0].email);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,8 +74,9 @@ export default function Login() {
           </Button>
           <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">Демо-доступ</p>
-            <p>Email: me@degeshcrm.local</p>
-            <p>Пароль: demo123</p>
+            {DEMO_EMPLOYEES.map((employee) => (
+              <p key={employee.id}>{employee.role === "manager" ? "Менеджер" : "Продажник"}: {employee.email} / {employee.password}</p>
+            ))}
           </div>
         </form>
       </div>
