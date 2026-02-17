@@ -21,10 +21,15 @@ const DEMO_USER: AuthUser = {
 };
 
 const DEMO_PASSWORD = "demo123";
+const AUTH_BYPASS_ENABLED = (import.meta.env.VITE_BYPASS_EMPLOYEE_LOGIN ?? "true") === "true";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const readStoredUser = () => {
+  if (AUTH_BYPASS_ENABLED) {
+    return DEMO_USER;
+  }
+
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) return null;
   try {
@@ -38,6 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser());
 
   const login = async (email: string, password: string) => {
+    if (AUTH_BYPASS_ENABLED) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(DEMO_USER));
+      setUser(DEMO_USER);
+      return DEMO_USER;
+    }
+
     if (email === DEMO_USER.email && password === DEMO_PASSWORD) {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(DEMO_USER));
       setUser(DEMO_USER);
@@ -47,6 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    if (AUTH_BYPASS_ENABLED) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(DEMO_USER));
+      setUser(DEMO_USER);
+      return;
+    }
+
     localStorage.removeItem(AUTH_STORAGE_KEY);
     setUser(null);
   };
