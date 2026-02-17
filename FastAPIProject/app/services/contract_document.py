@@ -14,7 +14,7 @@ from reportlab.pdfgen import canvas
 from pathlib import Path
 
 from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
@@ -671,54 +671,84 @@ def _set_page_margins(doc: Document) -> None:
 
 
 def _set_line_spacing(paragraph, line_spacing: Cm = Cm(1)) -> None:
+    paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
     paragraph.paragraph_format.line_spacing = line_spacing
 
 
 def _add_page_number(run):
     run.add_text("Страница ")
+
     fld_char_begin = OxmlElement("w:fldChar")
     fld_char_begin.set(qn("w:fldCharType"), "begin")
+
     instr_text = OxmlElement("w:instrText")
     instr_text.set(qn("xml:space"), "preserve")
     instr_text.text = " PAGE "
+
+    fld_char_separate = OxmlElement("w:fldChar")
+    fld_char_separate.set(qn("w:fldCharType"), "separate")
+
     fld_char_end = OxmlElement("w:fldChar")
     fld_char_end.set(qn("w:fldCharType"), "end")
 
     run._r.append(fld_char_begin)
     run._r.append(instr_text)
+    run._r.append(fld_char_separate)
     run._r.append(fld_char_end)
+
+
+def _set_cell_top_border(cell, color: str = "A58B8B", size: str = "6", space: str = "1") -> None:
+    tc_pr = cell._tc.get_or_add_tcPr()
+    tc_borders = tc_pr.find(qn("w:tcBorders"))
+    if tc_borders is None:
+        tc_borders = OxmlElement("w:tcBorders")
+        tc_pr.append(tc_borders)
+
+    top_border = OxmlElement("w:top")
+    top_border.set(qn("w:val"), "single")
+    top_border.set(qn("w:sz"), size)
+    top_border.set(qn("w:space"), space)
+    top_border.set(qn("w:color"), color)
+    tc_borders.append(top_border)
 
 
 def _add_footer(doc: Document) -> None:
     section = doc.sections[0]
     footer = section.footer
 
-    footer_paragraph = footer.paragraphs[0]
-    footer_paragraph.text = ""
-    footer_paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    footer_paragraph.paragraph_format.space_before = Pt(0)
-    footer_paragraph.paragraph_format.space_after = Pt(0)
-    _set_line_spacing(footer_paragraph)
-    footer_paragraph.paragraph_format.tab_stops.add_tab_stop(
-        doc.sections[0].page_width - doc.sections[0].left_margin - doc.sections[0].right_margin,
-        WD_TAB_ALIGNMENT.RIGHT,
-    )
+    footer.paragraphs[0].text = ""
 
-    p_pr = footer_paragraph._p.get_or_add_pPr()
-    p_borders = OxmlElement("w:pBdr")
-    top_border = OxmlElement("w:top")
-    top_border.set(qn("w:val"), "single")
-    top_border.set(qn("w:sz"), "6")
-    top_border.set(qn("w:space"), "1")
-    top_border.set(qn("w:color"), "A58B8B")
-    p_borders.append(top_border)
-    p_pr.append(p_borders)
+    table = footer.add_table(rows=1, cols=2, width=section.page_width - section.left_margin - section.right_margin)
+    table.autofit = False
 
-    company_run = footer_paragraph.add_run("ТОО «Дегеш Агро ЛТД»")
+    left_cell = table.cell(0, 0)
+    right_cell = table.cell(0, 1)
+
+    left_cell.width = int((section.page_width - section.left_margin - section.right_margin) * 0.62)
+    right_cell.width = int((section.page_width - section.left_margin - section.right_margin) * 0.38)
+
+    _set_cell_top_border(left_cell)
+    _set_cell_top_border(right_cell)
+
+    left_paragraph = left_cell.paragraphs[0]
+    left_paragraph.text = ""
+    left_paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    left_paragraph.paragraph_format.space_before = Pt(0)
+    left_paragraph.paragraph_format.space_after = Pt(0)
+    _set_line_spacing(left_paragraph)
+
+    company_run = left_paragraph.add_run("ТОО «Дегеш Агро ЛТД»")
     company_run.font.name = "Cambria"
     company_run.font.size = Pt(11)
-    footer_paragraph.add_run("\t")
-    page_run = footer_paragraph.add_run()
+
+    right_paragraph = right_cell.paragraphs[0]
+    right_paragraph.text = ""
+    right_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    right_paragraph.paragraph_format.space_before = Pt(0)
+    right_paragraph.paragraph_format.space_after = Pt(0)
+    _set_line_spacing(right_paragraph)
+
+    page_run = right_paragraph.add_run()
     page_run.font.name = "Cambria"
     page_run.font.size = Pt(11)
     _add_page_number(page_run)
@@ -1155,6 +1185,41 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
                                 font_size,
                                 bottom_margin,
                             )
+                elif block_type == "paren_numbered":
+                    paren_index = 1
+                    for item in (block or {}).get("items") or []:
+                        item_text = str(item).strip()
+                        if item_text:
+                            y = _draw_wrapped_text(
+                                pdf,
+                                f"{paren_index}) {item_text}",
+                                left_margin,
+                                y,
+                                content_width,
+                                line_height,
+                                font_regular,
+                                font_size,
+                                bottom_margin,
+                            )
+                            paren_index += 1
+                elif block_type == "explicit_numbered":
+                    for item in (block or {}).get("items") or []:
+                        marker = str((item or {}).get("marker", "")).strip()
+                        item_text = str((item or {}).get("text", "")).strip()
+                        if marker and item_text:
+                            marker_font = font_bold if _is_clause_subheading(marker, item_text) else font_regular
+                            marker_size = 12 if _is_clause_subheading(marker, item_text) else font_size
+                            y = _draw_wrapped_text(
+                                pdf,
+                                f"{marker}	{item_text}",
+                                left_margin,
+                                y,
+                                content_width,
+                                line_height,
+                                marker_font,
+                                marker_size,
+                                bottom_margin,
+                            )
 
     signatures = document_payload.get("signatures", {})
 
@@ -1315,7 +1380,7 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
     )
     docx_content = render_contract_document_docx(contract, document_payload)
     converted_pdf = _convert_docx_bytes_to_pdf_bytes(docx_content)
-    if converted_pdf is not None:
-        return converted_pdf
+    if converted_pdf is None:
+        raise RuntimeError("PDF preview is unavailable because DOCX-to-PDF conversion is not configured on the server.")
 
-    return _render_contract_document_pdf_bytes(contract, document_payload)
+    return converted_pdf
