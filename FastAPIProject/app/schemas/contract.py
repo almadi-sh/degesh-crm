@@ -24,8 +24,27 @@ class ContractDocumentBulletsBlock(BaseModel):
     items: List[str]
 
 
+class ContractDocumentExplicitNumberedItem(BaseModel):
+    marker: str
+    text: str
+
+
+class ContractDocumentExplicitNumberedBlock(BaseModel):
+    type: Literal["explicit_numbered"]
+    items: List[ContractDocumentExplicitNumberedItem]
+
+
+class ContractDocumentParenNumberedBlock(BaseModel):
+    type: Literal["paren_numbered"]
+    items: List[str]
+
+
 ContractDocumentBlock = (
-    ContractDocumentParagraphBlock | ContractDocumentNumberedBlock | ContractDocumentBulletsBlock
+    ContractDocumentParagraphBlock
+    | ContractDocumentNumberedBlock
+    | ContractDocumentBulletsBlock
+    | ContractDocumentExplicitNumberedBlock
+    | ContractDocumentParenNumberedBlock
 )
 
 class ContractDocumentClause(BaseModel):
