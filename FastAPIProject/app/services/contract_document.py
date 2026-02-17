@@ -674,6 +674,30 @@ def _set_line_spacing(paragraph, line_spacing: Cm = Cm(1)) -> None:
     paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
     paragraph.paragraph_format.line_spacing = line_spacing
 
+def _apply_global_line_spacing(doc: Document, line_spacing: Cm = Cm(1)) -> None:
+    def apply_to_paragraphs(paragraphs) -> None:
+        for paragraph in paragraphs:
+            _set_line_spacing(paragraph, line_spacing)
+
+    def apply_to_table(table) -> None:
+        for row in table.rows:
+            for cell in row.cells:
+                apply_to_paragraphs(cell.paragraphs)
+                for nested_table in cell.tables:
+                    apply_to_table(nested_table)
+
+    apply_to_paragraphs(doc.paragraphs)
+
+    for table in doc.tables:
+        apply_to_table(table)
+
+    for section in doc.sections:
+        apply_to_paragraphs(section.header.paragraphs)
+        apply_to_paragraphs(section.footer.paragraphs)
+        for table in section.header.tables:
+            apply_to_table(table)
+        for table in section.footer.tables:
+            apply_to_table(table)
 
 def _add_page_number(run):
     run.add_text("Страница ")
@@ -867,6 +891,7 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     style.paragraph_format.space_before = Pt(0)
     style.paragraph_format.space_after = Pt(0)
+    style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
     style.paragraph_format.line_spacing = Cm(1)
 
     title = header.get("title", "Договор")
@@ -929,7 +954,7 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     requisites_table.autofit = True
 
     seller_cell = requisites_table.cell(0, 0)
-    seller_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
+    seller_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
     seller_cell.paragraphs[0].paragraph_format.space_before = Pt(0)
     seller_cell.paragraphs[0].paragraph_format.space_after = Pt(0)
     _set_line_spacing(seller_cell.paragraphs[0])
@@ -946,7 +971,7 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
             _set_line_spacing(paragraph)
 
     buyer_cell = requisites_table.cell(0, 1)
-    buyer_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
+    buyer_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
     buyer_cell.paragraphs[0].paragraph_format.space_before = Pt(0)
     buyer_cell.paragraphs[0].paragraph_format.space_after = Pt(0)
     _set_line_spacing(buyer_cell.paragraphs[0])
@@ -979,6 +1004,8 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
                 paragraph.paragraph_format.space_before = Pt(0)
                 paragraph.paragraph_format.space_after = Pt(0)
                 _set_line_spacing(paragraph)
+
+    _apply_global_line_spacing(doc)
 
     buffer = BytesIO()
     doc.save(buffer)
