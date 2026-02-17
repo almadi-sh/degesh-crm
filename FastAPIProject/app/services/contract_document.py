@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
+import tempfile
 from io import BytesIO
 
 from reportlab.lib.pagesizes import A4
@@ -51,6 +54,52 @@ def _extract_clause_body_items(clause_id: str, body: str) -> list[str]:
     return items
 
 
+def _parse_clause_body_blocks(clause_id: str, body: str) -> list[dict]:
+    blocks: list[dict] = []
+    dotted_numbered_pattern = re.compile(r"^(\d+(?:\.\d+)*\.)\s*(.+)$")
+    paren_numbered_pattern = re.compile(r"^(\d+)\)\s*(.+)$")
+    generic_numbered_pattern = re.compile(r"^(\d+)\.\s*(.+)$")
+
+    def ensure_items_block(block_type: str):
+        if not blocks or blocks[-1].get("type") != block_type:
+            blocks.append({"type": block_type, "items": []})
+        return blocks[-1]["items"]
+
+    for raw_line in body.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        if line.startswith("-"):
+            cleaned = line.lstrip("-").strip()
+            if cleaned:
+                ensure_items_block("bullets").append(cleaned)
+            continue
+
+        paren_match = paren_numbered_pattern.match(line)
+        if paren_match:
+            ensure_items_block("paren_numbered").append(paren_match.group(2).strip())
+            continue
+
+        dotted_match = dotted_numbered_pattern.match(line)
+        if dotted_match:
+            marker = dotted_match.group(1).strip()
+            text = dotted_match.group(2).strip()
+            ensure_items_block("explicit_numbered").append({"marker": marker, "text": text})
+            continue
+
+        generic_match = generic_numbered_pattern.match(line)
+        if generic_match:
+            marker = f"{generic_match.group(1).strip()}."
+            text = generic_match.group(2).strip()
+            ensure_items_block("explicit_numbered").append({"marker": marker, "text": text})
+            continue
+
+        blocks.append({"type": "paragraph", "text": line})
+
+    return blocks
+
+
 def _get_clause_blocks(clause: dict) -> list[dict]:
     clause_id = str(clause.get("id", "")).strip()
     clause_body = clause.get("body")
@@ -68,7 +117,7 @@ def _get_clause_blocks(clause: dict) -> list[dict]:
     if isinstance(clause_body, str):
         normalized_items = _extract_clause_body_items(clause_id, clause_body)
         clause["body"] = normalized_items
-        clause["blocks"] = [{"type": "numbered", "items": normalized_items}] if normalized_items else []
+        clause["blocks"] = _parse_clause_body_blocks(clause_id, clause_body)
         return clause["blocks"]
 
     if blocks:
@@ -578,6 +627,19 @@ def render_contract_document_text(contract: Contract) -> str:
                         text = str(item).strip()
                         if text:
                             sections.append(f"- {text}")
+                elif block_type == "paren_numbered":
+                    paren_index = 1
+                    for item in block.get("items") or []:
+                        text = str(item).strip()
+                        if text:
+                            sections.append(f"{paren_index}) {text}")
+                            paren_index += 1
+                elif block_type == "explicit_numbered":
+                    for item in block.get("items") or []:
+                        marker = str((item or {}).get("marker", "")).strip()
+                        text = str((item or {}).get("text", "")).strip()
+                        if marker and text:
+                            sections.append(f"{marker} {text}")
         else:
             for item in clause.get("body") or []:
                 text = str(item).strip()
@@ -602,10 +664,14 @@ def render_contract_document_text(contract: Contract) -> str:
 
 def _set_page_margins(doc: Document) -> None:
     section = doc.sections[0]
-    section.left_margin = Cm(1.91)
-    section.right_margin = Cm(1.91)
-    section.top_margin = Cm(2.54)
-    section.bottom_margin = Cm(2.54)
+    section.top_margin = Cm(1.34)
+    section.bottom_margin = Cm(1.69)
+    section.left_margin = Cm(1.75)
+    section.right_margin = Cm(1.25)
+
+
+def _set_line_spacing(paragraph, line_spacing: Cm = Cm(1)) -> None:
+    paragraph.paragraph_format.line_spacing = line_spacing
 
 
 def _add_page_number(run):
@@ -630,11 +696,32 @@ def _add_footer(doc: Document) -> None:
     footer_paragraph = footer.paragraphs[0]
     footer_paragraph.text = ""
     footer_paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    footer_paragraph.add_run("ТОО «Дегеш Агро ЛТД»")
+    footer_paragraph.paragraph_format.space_before = Pt(0)
+    footer_paragraph.paragraph_format.space_after = Pt(0)
+    _set_line_spacing(footer_paragraph)
+    footer_paragraph.paragraph_format.tab_stops.add_tab_stop(
+        doc.sections[0].page_width - doc.sections[0].left_margin - doc.sections[0].right_margin,
+        WD_TAB_ALIGNMENT.RIGHT,
+    )
 
-    page_paragraph = footer.add_paragraph()
-    page_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    _add_page_number(page_paragraph.add_run())
+    p_pr = footer_paragraph._p.get_or_add_pPr()
+    p_borders = OxmlElement("w:pBdr")
+    top_border = OxmlElement("w:top")
+    top_border.set(qn("w:val"), "single")
+    top_border.set(qn("w:sz"), "6")
+    top_border.set(qn("w:space"), "1")
+    top_border.set(qn("w:color"), "A58B8B")
+    p_borders.append(top_border)
+    p_pr.append(p_borders)
+
+    company_run = footer_paragraph.add_run("ТОО «Дегеш Агро ЛТД»")
+    company_run.font.name = "Cambria"
+    company_run.font.size = Pt(11)
+    footer_paragraph.add_run("\t")
+    page_run = footer_paragraph.add_run()
+    page_run.font.name = "Cambria"
+    page_run.font.size = Pt(11)
+    _add_page_number(page_run)
 
 
 def _add_justified_paragraph(doc: Document, text: str, spacing_after: Pt | None = None):
@@ -642,7 +729,22 @@ def _add_justified_paragraph(doc: Document, text: str, spacing_after: Pt | None 
     paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     paragraph.paragraph_format.space_before = Pt(0)
     paragraph.paragraph_format.space_after = spacing_after if spacing_after is not None else Pt(0)
+    _set_line_spacing(paragraph)
     return paragraph
+
+
+def _is_clause_subheading(marker: str, text: str) -> bool:
+    if not marker or not text:
+        return False
+
+    return bool(re.match(r"^\d+\.\d+\.$", marker) and text.endswith(":"))
+
+
+def _add_explicit_numbered_paragraph(doc: Document, marker: str, text: str) -> None:
+    paragraph = _add_justified_paragraph(doc, f"{marker}\t{text}")
+    if _is_clause_subheading(marker, text):
+        for run in paragraph.runs:
+            run.bold = True
 
 
 def _add_clause_blocks(doc: Document, clause: dict) -> None:
@@ -669,6 +771,19 @@ def _add_clause_blocks(doc: Document, clause: dict) -> None:
                     text = str(item).strip()
                     if text:
                         _add_justified_paragraph(doc, f"- {text}")
+            elif block_type == "paren_numbered":
+                paren_index = 1
+                for item in block.get("items") or []:
+                    text = str(item).strip()
+                    if text:
+                        _add_justified_paragraph(doc, f"{paren_index}) {text}")
+                        paren_index += 1
+            elif block_type == "explicit_numbered":
+                for item in block.get("items") or []:
+                    marker = str((item or {}).get("marker", "")).strip()
+                    text = str((item or {}).get("text", "")).strip()
+                    if marker and text:
+                        _add_explicit_numbered_paragraph(doc, marker, text)
         return
 
     for item in clause.get("body") or []:
@@ -722,6 +837,7 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     style.paragraph_format.space_before = Pt(0)
     style.paragraph_format.space_after = Pt(0)
+    style.paragraph_format.line_spacing = Cm(1)
 
     title = header.get("title", "Договор")
     contract_number = header.get("contract_number", contract.contract_number)
@@ -735,6 +851,7 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
     heading.paragraph_format.space_before = Pt(0)
     heading.paragraph_format.space_after = Pt(0)
+    _set_line_spacing(heading)
     if heading.runs:
         heading.runs[0].bold = True
 
@@ -743,6 +860,7 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     city_line.alignment = WD_ALIGN_PARAGRAPH.LEFT
     city_line.paragraph_format.space_before = Pt(0)
     city_line.paragraph_format.space_after = Pt(0)
+    _set_line_spacing(city_line)
     city_line.paragraph_format.tab_stops.add_tab_stop(
         section.page_width - section.left_margin - section.right_margin,
         WD_TAB_ALIGNMENT.RIGHT,
@@ -760,8 +878,9 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
         if clause_title:
             title_paragraph = doc.add_paragraph(clause_title)
             title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            title_paragraph.paragraph_format.space_before = Pt(0)
+            title_paragraph.paragraph_format.space_before = Pt(6.5)
             title_paragraph.paragraph_format.space_after = Pt(0)
+            _set_line_spacing(title_paragraph)
             for run in title_paragraph.runs:
                 run.bold = True
 
@@ -1154,6 +1273,38 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
     return buffer.read()
 
 
+def _convert_docx_bytes_to_pdf_bytes(docx_bytes: bytes) -> bytes | None:
+    office_binary = shutil.which("soffice") or shutil.which("libreoffice")
+    if not office_binary:
+        return None
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        input_path = Path(tmp_dir) / "contract.docx"
+        output_path = Path(tmp_dir) / "contract.pdf"
+        input_path.write_bytes(docx_bytes)
+
+        result = subprocess.run(
+            [
+                office_binary,
+                "--headless",
+                "--convert-to",
+                "pdf",
+                "--outdir",
+                tmp_dir,
+                str(input_path),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+
+        if result.returncode != 0 or not output_path.exists():
+            return None
+
+        return output_path.read_bytes()
+
+
 def render_contract_document_pdf(contract: Contract, document_payload_override: dict | None = None) -> bytes:
     document_payload = (
         normalize_contract_document_payload(document_payload_override)
@@ -1162,4 +1313,9 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
         if contract.contract_document
         else build_default_contract_document(contract)
     )
+    docx_content = render_contract_document_docx(contract, document_payload)
+    converted_pdf = _convert_docx_bytes_to_pdf_bytes(docx_content)
+    if converted_pdf is not None:
+        return converted_pdf
+
     return _render_contract_document_pdf_bytes(contract, document_payload)
