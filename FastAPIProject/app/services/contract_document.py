@@ -135,6 +135,8 @@ def ensure_contract_document(contract: Contract) -> dict:
 def build_default_contract_document(contract: Contract) -> dict:
     contract_date = contract.contract_date.strftime("%d.%m.%Y") if contract.contract_date else ""
     buyer_name = contract.customer.name if contract.customer else "ТОО «Покупатель»"
+    buyer_bin = contract.customer.bin_iin if contract.customer else ""
+    buyer_address = contract.customer.address if contract.customer else ""
     document = {
         "header": {
             "title": "Договор",
@@ -484,9 +486,21 @@ def build_default_contract_document(contract: Contract) -> dict:
             "seller_position": "Директор",
             "buyer_position": "Директор",
             "seller_name": "Ширяев А.Е.",
-            "buyer_name": "Граб Э.",
+            "buyer_name": (contract.customer.contract_signer_full_name if contract.customer and contract.customer.contract_signer_full_name else ""),
             "seller_stamp": "м.п.",
             "buyer_stamp": "м.п.",
+            "linked_customer_name": buyer_name,
+            "execution_city": (contract.customer.city if contract.customer and contract.customer.city else ""),
+            "sales_city": "",
+            "supply_subject": "",
+            "buyer_legal_address": (contract.customer.legal_address if contract.customer and contract.customer.legal_address else buyer_address),
+            "buyer_bin": buyer_bin,
+            "buyer_bank": "",
+            "buyer_bik": "",
+            "buyer_iik": "",
+            "buyer_phone": "",
+            "buyer_email": "",
+            "seller_details": "ТОО «Дегеш Агро ЛТД»\nЮр./факт. Адрес: РК, г. Астана, ул. Бокейхана 27/4, н.п. 4\nИИК KZ866010111000033319 БИН 070540028674\nБИК HSBKKZKX\nв АО «Народный Банк Казахстана»\nКонт. тел.: 8-702-679-24-51",
         },
     }
 
@@ -730,6 +744,27 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
         _add_clause_blocks(doc, clause)
 
     doc.add_paragraph("")
+    buyer_requisites_title = doc.add_paragraph("Реквизиты покупателя:")
+    buyer_requisites_title.runs[0].bold = True
+    for line in [
+        f"Клиент: {signatures.get('linked_customer_name', '')}",
+        f"Место исполнения: {signatures.get('execution_city', '')}",
+        f"Предмет поставки: {signatures.get('supply_subject', '')}",
+        f"Юр. адрес: {signatures.get('buyer_legal_address', '')}",
+        f"БИН: {signatures.get('buyer_bin', '')}",
+        f"Банк: {signatures.get('buyer_bank', '')}",
+        f"БИК: {signatures.get('buyer_bik', '')}",
+        f"ИИК: {signatures.get('buyer_iik', '')}",
+        f"Конт. тел: {signatures.get('buyer_phone', '')}",
+        f"Email: {signatures.get('buyer_email', '')}",
+    ]:
+        if line.split(': ', 1)[1]:
+            doc.add_paragraph(line)
+
+    seller_requisites_title = doc.add_paragraph("Реквизиты продавца:")
+    seller_requisites_title.runs[0].bold = True
+    doc.add_paragraph(signatures.get("seller_details", ""))
+
     signatures_line = doc.add_paragraph("Подписи сторон:")
     signatures_line.runs[0].bold = True
 

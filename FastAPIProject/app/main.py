@@ -22,6 +22,24 @@ if inspector.has_table("contracts"):
                     text("ALTER TABLE contracts ADD COLUMN contract_document JSON"),
                 )
 
+if inspector.has_table("customers"):
+    columns = {column["name"] for column in inspector.get_columns("customers")}
+    expected_columns = [
+        "legal_form",
+        "contract_signer_full_name",
+        "contract_signer_role",
+        "contract_signer_basis",
+        "city",
+        "legal_address",
+        "tax_regime",
+        "created_by_user",
+        "initial_contact_user",
+    ]
+    with engine.begin() as connection:
+        for column_name in expected_columns:
+            if column_name not in columns:
+                connection.execute(text(f"ALTER TABLE customers ADD COLUMN {column_name} VARCHAR"))
+
 app = FastAPI(title="Corp System")
 
 app.add_middleware(
@@ -33,6 +51,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+
 
 @app.get("/")
 def root():

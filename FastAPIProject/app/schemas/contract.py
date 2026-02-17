@@ -45,6 +45,18 @@ class ContractDocumentSignatures(BaseModel):
     buyer_name: str
     seller_stamp: str
     buyer_stamp: str
+    linked_customer_name: str | None = None
+    execution_city: str | None = None
+    sales_city: str | None = None
+    supply_subject: str | None = None
+    buyer_legal_address: str | None = None
+    buyer_bin: str | None = None
+    buyer_bank: str | None = None
+    buyer_bik: str | None = None
+    buyer_iik: str | None = None
+    buyer_phone: str | None = None
+    buyer_email: str | None = None
+    seller_details: str | None = None
 
 class ContractDocument(BaseModel):
     header: ContractDocumentHeader
