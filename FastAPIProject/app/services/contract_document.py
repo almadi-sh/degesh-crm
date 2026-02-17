@@ -21,6 +21,8 @@ from docx.shared import Cm, Pt
 
 from app.models.contract import Contract
 
+DOCX_LINE_SPACING_TWIPS = 567  # 1 cm ~= 28.35 pt ~= 567 twips
+
 
 def _extract_clause_body_items(clause_id: str, body: str) -> list[str]:
     items: list[str] = []
@@ -670,11 +672,20 @@ def _set_page_margins(doc: Document) -> None:
     section.right_margin = Cm(1.25)
 
 
-def _set_line_spacing(paragraph, line_spacing: Cm = Cm(1)) -> None:
+def _set_line_spacing(paragraph, line_spacing: Pt = Pt(28.35)) -> None:
     paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
     paragraph.paragraph_format.line_spacing = line_spacing
 
-def _apply_global_line_spacing(doc: Document, line_spacing: Cm = Cm(1)) -> None:
+    p_pr = paragraph._p.get_or_add_pPr()
+    spacing = p_pr.find(qn("w:spacing"))
+    if spacing is None:
+        spacing = OxmlElement("w:spacing")
+        p_pr.append(spacing)
+
+    spacing.set(qn("w:line"), str(DOCX_LINE_SPACING_TWIPS))
+    spacing.set(qn("w:lineRule"), "exact")
+
+def _apply_global_line_spacing(doc: Document, line_spacing: Pt = Pt(28.35)) -> None:
     def apply_to_paragraphs(paragraphs) -> None:
         for paragraph in paragraphs:
             _set_line_spacing(paragraph, line_spacing)
@@ -892,7 +903,7 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     style.paragraph_format.space_before = Pt(0)
     style.paragraph_format.space_after = Pt(0)
     style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
-    style.paragraph_format.line_spacing = Cm(1)
+    style.paragraph_format.line_spacing = Pt(28.35)
 
     title = header.get("title", "Договор")
     contract_number = header.get("contract_number", contract.contract_number)
