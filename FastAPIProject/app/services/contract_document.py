@@ -25,6 +25,14 @@ from app.models.contract import Contract
 DOCX_LINE_SPACING_MULTIPLE = 1.0
 
 
+def _set_times_new_roman_font(run) -> None:
+    run.font.name = "Times New Roman"
+    run._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
+    run._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
+    run._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
+    run._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
+
+
 def _extract_clause_body_items(clause_id: str, body: str) -> list[str]:
     items: list[str] = []
     clause_numbered_pattern = re.compile(rf"^{re.escape(clause_id)}\.\d+(?:\.\d+)*\.\s*(.+)$") if clause_id else None
@@ -890,6 +898,10 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
 
     style = doc.styles["Normal"]
     style.font.name = "Times New Roman"
+    style._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
+    style._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
+    style._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
+    style._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
     style.font.size = Pt(12)
     style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     style.paragraph_format.space_before = Pt(0)
@@ -911,6 +923,7 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     heading.paragraph_format.space_after = Pt(0)
     _set_line_spacing(heading)
     if heading.runs:
+        _set_times_new_roman_font(heading.runs[0])
         heading.runs[0].bold = True
 
     section = doc.sections[0]
@@ -924,9 +937,11 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
         WD_TAB_ALIGNMENT.RIGHT,
     )
     city_run = city_line.add_run(city)
+    _set_times_new_roman_font(city_run)
     city_run.bold = True
     city_line.add_run("	")
     date_run = city_line.add_run(f"Дата {contract_date}")
+    _set_times_new_roman_font(date_run)
     date_run.bold = True
 
     _add_justified_paragraph(doc, document_payload.get("intro", ""), spacing_after=Pt(8))
@@ -1016,32 +1031,35 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     return buffer.read()
 
 def _resolve_pdf_font_name() -> tuple[str, str]:
-    """
-    contract_document.py лежит в app/services/
-    fonts лежит в app/fonts/
-    """
+    """Resolve the PDF font pair, preferring Times New Roman at 12pt-compatible metrics."""
 
     base_dir = Path(__file__).resolve().parent.parent  # app/
     font_dir = base_dir / "fonts"
 
-    regular_path = font_dir / "DejaVuSerif.ttf"
-    bold_path = font_dir / "DejaVuSerif-Bold.ttf"
-    print(regular_path, bold_path)
-    if not regular_path.exists():
-        return "Helvetica", "Helvetica-Bold"
+    font_candidates: list[tuple[str, str, Path, Path | None]] = [
+        ("TimesNewRoman", "TimesNewRoman-Bold", font_dir / "TimesNewRoman.ttf", font_dir / "TimesNewRoman-Bold.ttf"),
+        ("TimesNewRomanPSMT", "TimesNewRomanPS-BoldMT", font_dir / "times.ttf", font_dir / "timesbd.ttf"),
+        ("DejaVuSerif", "DejaVuSerif-Bold", font_dir / "DejaVuSerif.ttf", font_dir / "DejaVuSerif-Bold.ttf"),
+    ]
 
-    pdfmetrics.registerFont(TTFont("DejaVuSerif", str(regular_path)))
+    for regular_name, bold_name, regular_path, bold_path in font_candidates:
+        if not regular_path.exists():
+            continue
 
-    if bold_path.exists():
-        pdfmetrics.registerFont(TTFont("DejaVuSerif-Bold", str(bold_path)))
-        pdfmetrics.registerFontFamily(
-            "DejaVuSerif",
-            normal="DejaVuSerif",
-            bold="DejaVuSerif-Bold",
-        )
-        return "DejaVuSerif", "DejaVuSerif-Bold"
+        pdfmetrics.registerFont(TTFont(regular_name, str(regular_path)))
 
-    return "DejaVuSerif", "DejaVuSerif"
+        if bold_path and bold_path.exists():
+            pdfmetrics.registerFont(TTFont(bold_name, str(bold_path)))
+            pdfmetrics.registerFontFamily(
+                regular_name,
+                normal=regular_name,
+                bold=bold_name,
+            )
+            return regular_name, bold_name
+
+        return regular_name, regular_name
+
+    return "Times-Roman", "Times-Bold"
 
 
 def _draw_wrapped_text(
@@ -1105,7 +1123,7 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
 
     font_regular, font_bold = _resolve_pdf_font_name()
 
-    font_size = 11
+    font_size = 12
     line_height = 6.5 * mm
 
     left_margin = 20 * mm
@@ -1126,8 +1144,8 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
 
     heading = f"{title} {contract_number}".strip()
 
-    pdf.setFont(font_bold, 13)
-    heading_width = pdf.stringWidth(heading, font_bold, 13)
+    pdf.setFont(font_bold, font_size)
+    heading_width = pdf.stringWidth(heading, font_bold, font_size)
     pdf.drawString(left_margin + max((content_width - heading_width) / 2, 0), y, heading)
     y -= line_height
 
@@ -1160,7 +1178,7 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
 
         if clause_title:
             y -= 2 * mm
-            pdf.setFont(font_bold, 12)
+            pdf.setFont(font_bold, font_size)
 
             y = _draw_wrapped_text(
                 pdf,
@@ -1170,7 +1188,7 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
                 content_width,
                 line_height,
                 font_bold,
-                12,
+                font_size,
                 bottom_margin,
             )
 
@@ -1445,7 +1463,14 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
     )
     docx_content = render_contract_document_docx(contract, document_payload)
     converted_pdf, conversion_error = _convert_docx_bytes_to_pdf_bytes(docx_content)
-    if converted_pdf is None:
-        raise RuntimeError(f"PDF preview conversion failed: {conversion_error}")
+    if converted_pdf is not None:
+        return converted_pdf
 
-    return converted_pdf
+    # Fallback: keep PDF generation available even when LibreOffice is missing or failed.
+    # Primary path remains DOCX -> PDF for full style parity with DOCX.
+    fallback_payload = normalize_contract_document_payload(document_payload)
+    fallback_pdf = _render_contract_document_pdf_bytes(contract, fallback_payload)
+    if fallback_pdf:
+        return fallback_pdf
+
+    raise RuntimeError(f"PDF preview conversion failed: {conversion_error}")
