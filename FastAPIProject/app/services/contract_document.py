@@ -28,6 +28,10 @@ def _set_times_new_roman_font(run) -> None:
     run._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
 
 
+def _get_local_font_dir() -> Path:
+    return Path(__file__).resolve().parents[1] / "fonts"
+
+
 def _extract_clause_body_items(clause_id: str, body: str) -> list[str]:
     items: list[str] = []
     clause_numbered_pattern = re.compile(rf"^{re.escape(clause_id)}\.\d+(?:\.\d+)*\.\s*(.+)$") if clause_id else None
@@ -1038,6 +1042,9 @@ def _convert_docx_bytes_to_pdf_bytes(docx_bytes: bytes) -> tuple[bytes | None, s
         profile_dir = Path(tmp_dir) / "lo-profile"
         profile_dir.mkdir(parents=True, exist_ok=True)
         env = {**os.environ, "HOME": tmp_dir}
+        local_font_dir = _get_local_font_dir()
+        if local_font_dir.is_dir():
+            env["SAL_FONTPATH"] = str(local_font_dir)
         user_installation = profile_dir.resolve().as_uri()
         result = subprocess.run(
             [
