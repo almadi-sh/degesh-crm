@@ -160,6 +160,32 @@ def export_contract_document(contract_id: int, db: Session = Depends(get_db)):
         },
     )
 
+@router.get("/{contract_id}/document/export-pdf")
+@router.get("/{contract_id}/document/export-pdf/", include_in_schema=False)
+def export_contract_document_pdf(contract_id: int, db: Session = Depends(get_db)):
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    if contract.status != "Confirmed":
+        raise HTTPException(status_code=400, detail="Contract must be confirmed before export")
+
+    try:
+        content = render_contract_document_pdf(contract)
+    except RuntimeError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+    filename = f"contract-{contract.contract_number}.pdf".replace(" ", "_")
+    filename_encoded = quote(filename)
+
+    return StreamingResponse(
+        BytesIO(content),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{filename_encoded}"
+        },
+    )
+
 @router.delete("/{contract_id}", status_code=204)
 @router.delete("/{contract_id}/", status_code=204, include_in_schema=False)
 def delete_contract(contract_id: int, db: Session = Depends(get_db)):

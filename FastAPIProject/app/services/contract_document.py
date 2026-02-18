@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -1387,22 +1388,31 @@ def _render_contract_document_pdf_bytes(contract: Contract, document_payload: di
     return buffer.read()
 
 
-def _convert_docx_bytes_to_pdf_bytes(docx_bytes: bytes) -> bytes | None:
+def _convert_docx_bytes_to_pdf_bytes(docx_bytes: bytes) -> tuple[bytes | None, str | None]:
     office_binary = shutil.which("soffice") or shutil.which("libreoffice")
     if not office_binary:
-        return None
+        return None, "LibreOffice binary is not installed (expected soffice or libreoffice in PATH)."
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         input_path = Path(tmp_dir) / "contract.docx"
         output_path = Path(tmp_dir) / "contract.pdf"
         input_path.write_bytes(docx_bytes)
 
+        profile_dir = Path(tmp_dir) / "lo-profile"
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        env = {**os.environ, "HOME": tmp_dir}
+        user_installation = profile_dir.resolve().as_uri()
         result = subprocess.run(
             [
                 office_binary,
                 "--headless",
+                "--nologo",
+                "--nolockcheck",
+                "--nodefault",
+                "--nofirststartwizard",
+                f"-env:UserInstallation={user_installation}",
                 "--convert-to",
-                "pdf",
+                "pdf:writer_pdf_Export",
                 "--outdir",
                 tmp_dir,
                 str(input_path),
@@ -1411,12 +1421,18 @@ def _convert_docx_bytes_to_pdf_bytes(docx_bytes: bytes) -> bytes | None:
             stderr=subprocess.PIPE,
             text=True,
             check=False,
+            env=env,
         )
 
-        if result.returncode != 0 or not output_path.exists():
-            return None
+        if result.returncode != 0:
+            output = "\n".join(part.strip() for part in [result.stdout, result.stderr] if part and part.strip())
+            details = output or f"soffice exited with code {result.returncode}"
+            return None, details
 
-        return output_path.read_bytes()
+        if not output_path.exists():
+            return None, "LibreOffice finished without errors but did not create a PDF file."
+
+        return output_path.read_bytes(), None
 
 
 def render_contract_document_pdf(contract: Contract, document_payload_override: dict | None = None) -> bytes:
@@ -1428,8 +1444,8 @@ def render_contract_document_pdf(contract: Contract, document_payload_override: 
         else build_default_contract_document(contract)
     )
     docx_content = render_contract_document_docx(contract, document_payload)
-    converted_pdf = _convert_docx_bytes_to_pdf_bytes(docx_content)
+    converted_pdf, conversion_error = _convert_docx_bytes_to_pdf_bytes(docx_content)
     if converted_pdf is None:
-        raise RuntimeError("PDF preview is unavailable because DOCX-to-PDF conversion is not configured on the server.")
+        raise RuntimeError(f"PDF preview conversion failed: {conversion_error}")
 
     return converted_pdf
