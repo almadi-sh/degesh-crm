@@ -3,7 +3,10 @@ FROM python:3.11-slim
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libreoffice-writer fonts-dejavu-core fontconfig \
+    && apt-get install -y --no-install-recommends \
+        libreoffice-writer \
+        fontconfig \
+        fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -12,9 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /usr/share/fonts/truetype/msttcorefonts \
-    && if [ -d "/app/fonts" ]; then \
-        cp /app/fonts/*.ttf /usr/share/fonts/truetype/msttcorefonts/ 2>/dev/null || true; \
+# Copy custom fonts (Times New Roman etc.) into system fonts
+RUN mkdir -p /usr/share/fonts/truetype/custom \
+    && if [ -d "/app/app/fonts" ]; then \
+        cp /app/app/fonts/*.ttf /usr/share/fonts/truetype/custom/ 2>/dev/null || true; \
         fc-cache -f -v; \
     fi
 

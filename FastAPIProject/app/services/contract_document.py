@@ -22,10 +22,45 @@ DOCX_LINE_SPACING_MULTIPLE = 1.0
 
 def _set_times_new_roman_font(run) -> None:
     run.font.name = "Times New Roman"
-    run._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
-    run._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
-    run._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
-    run._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
+    r_pr = run._element.get_or_add_rPr()
+    r_fonts = r_pr.get_or_add_rFonts()
+    r_fonts.set(qn("w:ascii"), "Times New Roman")
+    r_fonts.set(qn("w:hAnsi"), "Times New Roman")
+    r_fonts.set(qn("w:eastAsia"), "Times New Roman")
+    r_fonts.set(qn("w:cs"), "Times New Roman")
+
+
+def _apply_times_new_roman_to_paragraph(paragraph) -> None:
+    for run in paragraph.runs:
+        _set_times_new_roman_font(run)
+
+
+def _apply_times_new_roman_to_table(table) -> None:
+    for row in table.rows:
+        for cell in row.cells:
+            for paragraph in cell.paragraphs:
+                _apply_times_new_roman_to_paragraph(paragraph)
+            for nested_table in cell.tables:
+                _apply_times_new_roman_to_table(nested_table)
+
+
+def _enforce_times_new_roman_font(doc: Document) -> None:
+    for paragraph in doc.paragraphs:
+        _apply_times_new_roman_to_paragraph(paragraph)
+
+    for table in doc.tables:
+        _apply_times_new_roman_to_table(table)
+
+    for section in doc.sections:
+        for paragraph in section.header.paragraphs:
+            _apply_times_new_roman_to_paragraph(paragraph)
+        for table in section.header.tables:
+            _apply_times_new_roman_to_table(table)
+
+        for paragraph in section.footer.paragraphs:
+            _apply_times_new_roman_to_paragraph(paragraph)
+        for table in section.footer.tables:
+            _apply_times_new_roman_to_table(table)
 
 
 def _get_local_font_dir() -> Path:
@@ -1023,6 +1058,7 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
                 _set_line_spacing(paragraph)
 
     _apply_global_line_spacing(doc)
+    _enforce_times_new_roman_font(doc)
 
     buffer = BytesIO()
     doc.save(buffer)
