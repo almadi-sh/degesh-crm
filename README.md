@@ -24,13 +24,14 @@ The dev server runs on http://localhost:8080 and proxies `/api` requests to the 
 
 ## Backend setup
 
-Requirements: Python 3.10+.
+Requirements: Python 3.10+ and LibreOffice (for DOCX → PDF preview export).
 
 ```sh
 cd FastAPIProject
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+# Debian/Ubuntu only: sudo apt-get install libreoffice-writer
 uvicorn app.main:app --reload
 ```
 

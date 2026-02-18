@@ -151,13 +151,16 @@ export default function Contracts() {
         setIsContractDocumentDirty(false);
       }
 
-      const response = await apiFetchResponse(`/api/v1/contracts/${activeContract.id}/document/export?ts=${Date.now()}`, { cache: "no-store" });
+      const response = await apiFetchResponse(`/api/v1/contracts/${activeContract.id}/document/export-pdf?ts=${Date.now()}`, { cache: "no-store" });
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const disposition = response.headers.get("Content-Disposition") ?? "";
+      const filenameStarMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
       const filenameMatch = disposition.match(/filename=([^;]+)/i);
-      const fallbackFilename = `contract-${activeContract.contract_number}.docx`;
-      const filename = filenameMatch?.[1]?.trim().replace(/^"|"$/g, "") || fallbackFilename;
+      const fallbackFilename = `contract-${activeContract.contract_number}.pdf`;
+      const filename = filenameStarMatch?.[1]
+        ? decodeURIComponent(filenameStarMatch[1].trim().replace(/^"|"$/g, ""))
+        : filenameMatch?.[1]?.trim().replace(/^"|"$/g, "") || fallbackFilename;
       const link = document.createElement("a");
       link.href = url;
       link.download = filename;
@@ -353,9 +356,9 @@ export default function Contracts() {
                           </div>
                           <div className="flex gap-2">
                             <Button variant="outline" onClick={() => void refreshContractPreview()} disabled={isContractPreviewLoading}>
-                              {isContractPreviewLoading ? "Refreshing preview..." : "Refresh preview"}
+                              {isContractPreviewLoading ? "Refreshing preview..." : "Refresh PDF preview"}
                             </Button>
-                            <Button onClick={handleDownloadContract}>Download contract</Button>
+                            <Button onClick={handleDownloadContract}>Download PDF</Button>
                           </div>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2 text-sm">
