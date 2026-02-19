@@ -17,9 +17,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { FileSpreadsheet, Trash2 } from "lucide-react";
+import { FileSpreadsheet, Pin, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getContractOwnerMap, getOwnedContractIds } from "@/lib/contractOwnership";
+import { apiFetchResponse } from "@/lib/apiClient";
+import { toast } from "sonner";
 
 interface EditableItem {
   product_id: number;
@@ -45,6 +47,7 @@ export default function ContractItems() {
 
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [activeContractId, setActiveContractId] = useState<number | null>(null);
+  const [activeAppendixNumber, setActiveAppendixNumber] = useState(1);
   const [newItem, setNewItem] = useState<EditableItem>({
     product_id: 0,
     quantity: 1,
@@ -79,6 +82,27 @@ export default function ContractItems() {
 
   const activeItems = useMemo(() => (activeContractId ? itemsByContract.get(activeContractId) ?? [] : []), [activeContractId, itemsByContract]);
 
+  const appendixNumbers = useMemo(() => {
+    const numbers = new Set<number>();
+    for (const item of activeItems) {
+      numbers.add(item.appendix_number || 1);
+    }
+    if (numbers.size === 0) numbers.add(1);
+    return Array.from(numbers).sort((a, b) => a - b);
+  }, [activeItems]);
+
+  const itemsByAppendix = useMemo(() => {
+    const map = new Map<number, typeof activeItems>();
+    for (const appendixNumber of appendixNumbers) {
+      map.set(appendixNumber, []);
+    }
+    for (const item of activeItems) {
+      const appendixNumber = item.appendix_number || 1;
+      map.set(appendixNumber, [...(map.get(appendixNumber) ?? []), item]);
+    }
+    return map;
+  }, [activeItems, appendixNumbers]);
+
   const contractSummaries = useMemo(() => {
     return ownedContracts.map((contract) => {
       const items = itemsByContract.get(contract.id) ?? [];
@@ -112,6 +136,12 @@ export default function ContractItems() {
     setEditedItems(nextEdited);
   }, [activeContractId, itemsByContract]);
 
+  useEffect(() => {
+    if (!activeContractId) return;
+    const maxAppendix = Math.max(...appendixNumbers);
+    setActiveAppendixNumber(maxAppendix);
+  }, [activeContractId, appendixNumbers]);
+
   const openManageDialog = (contractId: number) => {
     setActiveContractId(contractId);
     setIsManageDialogOpen(true);
@@ -120,6 +150,7 @@ export default function ContractItems() {
   const closeManageDialog = () => {
     setIsManageDialogOpen(false);
     setActiveContractId(null);
+    setActiveAppendixNumber(1);
     setNewItem({
       product_id: 0,
       quantity: 1,
@@ -140,6 +171,7 @@ export default function ContractItems() {
       vat_enabled: newItem.vat_enabled,
       delivery_enabled: newItem.delivery_enabled,
       delivery_terms: newItem.delivery_enabled ? newItem.delivery_terms : null,
+      appendix_number: activeAppendixNumber,
     });
     setNewItem({
       product_id: 0,
@@ -163,6 +195,30 @@ export default function ContractItems() {
       delivery_enabled: payload.delivery_enabled,
       delivery_terms: payload.delivery_enabled ? payload.delivery_terms : null,
     });
+  };
+
+  const handlePinAppendix = () => {
+    setActiveAppendixNumber((prev) => prev + 1);
+    toast.success(`Создано Приложение ${activeAppendixNumber + 1}`);
+  };
+
+  const handleDownloadAppendix = async (appendixNumber: number) => {
+    if (!activeContractId) return;
+    try {
+      const response = await apiFetchResponse(`/api/v1/contract-items/contract/${activeContractId}/appendix/${appendixNumber}/export-xlsx`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `appendix-${appendixNumber}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to download appendix";
+      toast.error(message);
+    }
   };
 
   const updateEditedItem = (id: number, field: keyof EditableItem, value: number | boolean | string) => {
@@ -257,7 +313,7 @@ export default function ContractItems() {
             }
           }}
         >
-          <DialogContent className="max-w-4xl overflow-hidden p-0">
+          <DialogContent className="max-w-5xl overflow-hidden p-0">
             <div className="flex max-h-[90vh] flex-col">
               <DialogHeader className="px-6 pt-6">
                 <DialogTitle className="font-display text-xl">Manage items for {activeContractId ? contractsById.get(activeContractId)?.contract_number : ""}</DialogTitle>
@@ -304,92 +360,111 @@ export default function ContractItems() {
                           <Input className="ml-4" value={newItem.delivery_terms} onChange={(event) => setNewItem({ ...newItem, delivery_terms: event.target.value })} placeholder="Delivery terms" />
                         )}
                       </div>
-                      <Button onClick={handleAddItem} disabled={!newItem.product_id || createContractItem.isPending}>
-                        Add item
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">Приложение {activeAppendixNumber}</Badge>
+                        <Button variant="outline" onClick={handlePinAppendix}>
+                          <Pin className="mr-2 h-4 w-4" /> Закрепить и создать следующее
+                        </Button>
+                        <Button onClick={handleAddItem} disabled={!newItem.product_id || createContractItem.isPending}>
+                          Add item
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Product</TableHead>
-                          <TableHead>Qty</TableHead>
-                          <TableHead>Price (without VAT)</TableHead>
-                          <TableHead>Price (with VAT)</TableHead>
-                          <TableHead>VAT</TableHead>
-                          <TableHead>Delivery</TableHead>
-                          <TableHead className="w-[160px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {activeItems.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground">
-                              No items yet. Add the first product above.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          activeItems.map((item) => {
-                            const edited = editedItems[item.id];
-                            if (!edited) return null;
-                            return (
-                              <TableRow key={item.id} className="hover:bg-muted/50">
-                                <TableCell>
-                                  <Select value={edited.product_id ? String(edited.product_id) : ""} onValueChange={(value) => updateEditedItem(item.id, "product_id", Number(value))}>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select product" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {products.map((product) => (
-                                        <SelectItem key={product.id} value={String(product.id)}>
-                                          {product.name} ({product.unit})
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
-                                <TableCell>
-                                  <Input type="number" min="1" step="1" value={edited.quantity} onChange={(event) => updateEditedItem(item.id, "quantity", Number(event.target.value))} />
-                                </TableCell>
-                                <TableCell>
-                                  <Input type="number" min="0" step="0.01" value={edited.price} onChange={(event) => updateEditedItem(item.id, "price", Number(event.target.value))} />
-                                </TableCell>
-                                <TableCell>
-                                  <Input value={(edited.price * (edited.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)} readOnly />
-                                </TableCell>
-                                <TableCell>
-                                  <Checkbox checked={edited.vat_enabled} onCheckedChange={(checked) => updateEditedItem(item.id, "vat_enabled", checked === true)} />
-                                </TableCell>
-                                <TableCell>
-                                  <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      <Checkbox checked={edited.delivery_enabled} onCheckedChange={(checked) => updateEditedItem(item.id, "delivery_enabled", checked === true)} id={`item-delivery-${item.id}`} />
-                                      <Label htmlFor={`item-delivery-${item.id}`}>Delivery</Label>
-                                    </div>
-                                    {edited.delivery_enabled && (
-                                      <Input value={edited.delivery_terms} onChange={(event) => updateEditedItem(item.id, "delivery_terms", event.target.value)} placeholder="Delivery terms" />
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex justify-end gap-2">
-                                    <Button size="sm" onClick={() => handleUpdateItem(item.id)} disabled={updateContractItem.isPending}>
-                                      Save
-                                    </Button>
-                                    <Button variant="outline" size="icon" onClick={() => deleteContractItem.mutate(item.id)} disabled={deleteContractItem.isPending}>
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
+                  {appendixNumbers.map((appendixNumber) => {
+                    const appendixItems = itemsByAppendix.get(appendixNumber) ?? [];
+                    return (
+                      <div key={appendixNumber} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold">Приложение {appendixNumber}</h3>
+                          <Button variant="outline" size="sm" onClick={() => handleDownloadAppendix(appendixNumber)}>
+                            Скачать XLSX
+                          </Button>
+                        </div>
+                        <div className="rounded-lg border border-border overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Product</TableHead>
+                                <TableHead>Qty</TableHead>
+                                <TableHead>Price (without VAT)</TableHead>
+                                <TableHead>Price (with VAT)</TableHead>
+                                <TableHead>VAT</TableHead>
+                                <TableHead>Delivery</TableHead>
+                                <TableHead className="w-[160px]"></TableHead>
                               </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
+                            </TableHeader>
+                            <TableBody>
+                              {appendixItems.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                                    No items in this appendix.
+                                  </TableCell>
+                                </TableRow>
+                              ) : (
+                                appendixItems.map((item) => {
+                                  const edited = editedItems[item.id];
+                                  if (!edited) return null;
+                                  return (
+                                    <TableRow key={item.id} className="hover:bg-muted/50">
+                                      <TableCell>
+                                        <Select value={edited.product_id ? String(edited.product_id) : ""} onValueChange={(value) => updateEditedItem(item.id, "product_id", Number(value))}>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Select product" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {products.map((product) => (
+                                              <SelectItem key={product.id} value={String(product.id)}>
+                                                {product.name} ({product.unit})
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Input type="number" min="1" step="1" value={edited.quantity} onChange={(event) => updateEditedItem(item.id, "quantity", Number(event.target.value))} />
+                                      </TableCell>
+                                      <TableCell>
+                                        <Input type="number" min="0" step="0.01" value={edited.price} onChange={(event) => updateEditedItem(item.id, "price", Number(event.target.value))} />
+                                      </TableCell>
+                                      <TableCell>
+                                        <Input value={(edited.price * (edited.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)} readOnly />
+                                      </TableCell>
+                                      <TableCell>
+                                        <Checkbox checked={edited.vat_enabled} onCheckedChange={(checked) => updateEditedItem(item.id, "vat_enabled", checked === true)} />
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="space-y-2">
+                                          <div className="flex items-center gap-2">
+                                            <Checkbox checked={edited.delivery_enabled} onCheckedChange={(checked) => updateEditedItem(item.id, "delivery_enabled", checked === true)} id={`item-delivery-${item.id}`} />
+                                            <Label htmlFor={`item-delivery-${item.id}`}>Delivery</Label>
+                                          </div>
+                                          {edited.delivery_enabled && (
+                                            <Input value={edited.delivery_terms} onChange={(event) => updateEditedItem(item.id, "delivery_terms", event.target.value)} placeholder="Delivery terms" />
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex justify-end gap-2">
+                                          <Button size="sm" onClick={() => handleUpdateItem(item.id)} disabled={updateContractItem.isPending}>
+                                            Save
+                                          </Button>
+                                          <Button variant="outline" size="icon" onClick={() => deleteContractItem.mutate(item.id)} disabled={deleteContractItem.isPending}>
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
