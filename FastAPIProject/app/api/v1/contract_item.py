@@ -6,6 +6,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -42,13 +43,54 @@ def _release_inventory(db: Session, product_id: int, quantity: float) -> None:
     db.add(inv)
 
 
-def _build_appendix_xlsx(rows: list[list[str | float]]) -> bytes:
+def _build_appendix_xlsx(
+    rows: list[list[str | float]],
+    header_title: str,
+    parties_line: str,
+    seller_signature: list[str],
+    buyer_signature: list[str],
+) -> bytes:
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Appendix"
 
-    for row in rows:
-        worksheet.append(row)
+    worksheet.merge_cells("A1:F1")
+    worksheet["A1"] = header_title
+    worksheet["A1"].font = Font(bold=True)
+    worksheet["A1"].alignment = Alignment(horizontal="left")
+
+    worksheet.merge_cells("A2:F2")
+    worksheet["A2"] = parties_line
+    worksheet["A2"].alignment = Alignment(horizontal="left")
+
+    worksheet.merge_cells("A4:F4")
+    worksheet["A4"] = "Спецификация"
+    worksheet["A4"].font = Font(bold=True)
+    worksheet["A4"].alignment = Alignment(horizontal="center")
+
+    table_start_row = 5
+    for index, row in enumerate(rows):
+        for column_index, value in enumerate(row, start=1):
+            cell = worksheet.cell(row=table_start_row + index, column=column_index, value=value)
+            if index == 0:
+                cell.font = Font(bold=True)
+                cell.alignment = Alignment(horizontal="center", wrap_text=True)
+
+    footer_start_row = table_start_row + len(rows) + 2
+    worksheet.cell(row=footer_start_row, column=1, value="Продавец:")
+    worksheet.cell(row=footer_start_row + 1, column=1, value=seller_signature[0])
+    worksheet.cell(row=footer_start_row + 2, column=1, value=seller_signature[1])
+
+    worksheet.cell(row=footer_start_row + 4, column=1, value="Покупатель:")
+    worksheet.cell(row=footer_start_row + 5, column=1, value=buyer_signature[0])
+    worksheet.cell(row=footer_start_row + 6, column=1, value=buyer_signature[1])
+
+    worksheet.column_dimensions["A"].width = 38
+    worksheet.column_dimensions["B"].width = 18
+    worksheet.column_dimensions["C"].width = 24
+    worksheet.column_dimensions["D"].width = 24
+    worksheet.column_dimensions["E"].width = 18
+    worksheet.column_dimensions["F"].width = 18
 
     output = BytesIO()
     workbook.save(output)
@@ -137,7 +179,22 @@ def export_appendix_xlsx(contract_id: int, appendix_number: int, db: Session = D
             ]
         )
 
-    file_bytes = _build_appendix_xlsx(rows)
+    contract_date = contract.contract_date.strftime("%d.%m.%Y")
+    customer_name = contract.customer.name if contract.customer else "Покупатель"
+    signatures = contract.contract_document.get("signatures", {}) if contract.contract_document else {}
+    seller_name = signatures.get("linked_customer_name") or "ТОО DeGesH"
+    seller_role = signatures.get("seller_position") or "Директор"
+    seller_signer_name = signatures.get("seller_name") or ""
+    buyer_role = signatures.get("buyer_position") or (contract.customer.contract_signer_role if contract.customer else "") or "Директор"
+    buyer_signer_name = signatures.get("buyer_name") or (contract.customer.contract_signer_full_name if contract.customer else "") or ""
+
+    file_bytes = _build_appendix_xlsx(
+        rows=rows,
+        header_title=f"Приложение {appendix_number} к договору {contract.contract_number} от {contract_date} года",
+        parties_line=f"между {seller_name} и {customer_name}",
+        seller_signature=[f"{seller_role} {seller_name}", seller_signer_name],
+        buyer_signature=[f"{buyer_role} {customer_name}", buyer_signer_name],
+    )
     filename = f"appendix-{appendix_number}-contract-{contract.contract_number}.xlsx"
     ascii_filename = f"appendix-{appendix_number}-contract.xlsx"
     content_disposition = (

@@ -33,6 +33,32 @@ interface EditableItem {
 }
 
 const VAT_RATE = 0.16;
+const NEXT_APPENDIX_KEY = "contractNextAppendix";
+
+const getStoredNextAppendix = (contractId: number): number | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(NEXT_APPENDIX_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, number>;
+    const value = parsed[String(contractId)];
+    return typeof value === "number" && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+};
+
+const setStoredNextAppendix = (contractId: number, nextAppendix: number) => {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(NEXT_APPENDIX_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Record<string, number>) : {};
+    parsed[String(contractId)] = nextAppendix;
+    window.localStorage.setItem(NEXT_APPENDIX_KEY, JSON.stringify(parsed));
+  } catch {
+    // ignore storage errors
+  }
+};
 
 export default function ContractItems() {
   const { data: clients = [] } = useClients();
@@ -87,9 +113,10 @@ export default function ContractItems() {
     for (const item of activeItems) {
       numbers.add(item.appendix_number || 1);
     }
+    numbers.add(activeAppendixNumber);
     if (numbers.size === 0) numbers.add(1);
     return Array.from(numbers).sort((a, b) => a - b);
-  }, [activeItems]);
+  }, [activeAppendixNumber, activeItems]);
 
   const itemsByAppendix = useMemo(() => {
     const map = new Map<number, typeof activeItems>();
@@ -139,7 +166,9 @@ export default function ContractItems() {
   useEffect(() => {
     if (!activeContractId) return;
     const maxAppendix = Math.max(...appendixNumbers);
-    setActiveAppendixNumber(maxAppendix);
+    const storedNextAppendix = getStoredNextAppendix(activeContractId);
+    const calculatedNextAppendix = maxAppendix > 0 ? maxAppendix + 1 : 1;
+    setActiveAppendixNumber(Math.max(calculatedNextAppendix, storedNextAppendix ?? 1));
   }, [activeContractId, appendixNumbers]);
 
   const openManageDialog = (contractId: number) => {
@@ -216,6 +245,9 @@ export default function ContractItems() {
 
     const nextAppendix = appendixNumber + 1;
     setActiveAppendixNumber(nextAppendix);
+    if (activeContractId) {
+      setStoredNextAppendix(activeContractId, nextAppendix);
+    }
     toast.success(`Приложение ${appendixNumber} закреплено. Добавление продолжится в Приложение ${nextAppendix}.`);
   };
 
@@ -388,10 +420,14 @@ export default function ContractItems() {
 
                   {appendixNumbers.map((appendixNumber) => {
                     const appendixItems = itemsByAppendix.get(appendixNumber) ?? [];
+                    const isLockedAppendix = appendixNumber < activeAppendixNumber;
                     return (
                       <div key={appendixNumber} className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold">Приложение {appendixNumber}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold">Приложение {appendixNumber}</h3>
+                            {isLockedAppendix && <Badge variant="secondary">Закреплено</Badge>}
+                          </div>
                           <Button variant="outline" size="sm" onClick={() => handleDownloadAppendix(appendixNumber)}>
                             Скачать XLSX
                           </Button>
@@ -423,7 +459,7 @@ export default function ContractItems() {
                                   return (
                                     <TableRow key={item.id} className="hover:bg-muted/50">
                                       <TableCell>
-                                        <Select value={edited.product_id ? String(edited.product_id) : ""} onValueChange={(value) => updateEditedItem(item.id, "product_id", Number(value))}>
+                                        <Select disabled={isLockedAppendix} value={edited.product_id ? String(edited.product_id) : ""} onValueChange={(value) => updateEditedItem(item.id, "product_id", Number(value))}>
                                           <SelectTrigger>
                                             <SelectValue placeholder="Select product" />
                                           </SelectTrigger>
@@ -437,34 +473,34 @@ export default function ContractItems() {
                                         </Select>
                                       </TableCell>
                                       <TableCell>
-                                        <Input type="number" min="1" step="1" value={edited.quantity} onChange={(event) => updateEditedItem(item.id, "quantity", Number(event.target.value))} />
+                                        <Input type="number" min="1" step="1" value={edited.quantity} onChange={(event) => updateEditedItem(item.id, "quantity", Number(event.target.value))} disabled={isLockedAppendix} />
                                       </TableCell>
                                       <TableCell>
-                                        <Input type="number" min="0" step="0.01" value={edited.price} onChange={(event) => updateEditedItem(item.id, "price", Number(event.target.value))} />
+                                        <Input type="number" min="0" step="0.01" value={edited.price} onChange={(event) => updateEditedItem(item.id, "price", Number(event.target.value))} disabled={isLockedAppendix} />
                                       </TableCell>
                                       <TableCell>
                                         <Input value={(edited.price * (edited.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)} readOnly />
                                       </TableCell>
                                       <TableCell>
-                                        <Checkbox checked={edited.vat_enabled} onCheckedChange={(checked) => updateEditedItem(item.id, "vat_enabled", checked === true)} />
+                                        <Checkbox checked={edited.vat_enabled} onCheckedChange={(checked) => updateEditedItem(item.id, "vat_enabled", checked === true)} disabled={isLockedAppendix} />
                                       </TableCell>
                                       <TableCell>
                                         <div className="space-y-2">
                                           <div className="flex items-center gap-2">
-                                            <Checkbox checked={edited.delivery_enabled} onCheckedChange={(checked) => updateEditedItem(item.id, "delivery_enabled", checked === true)} id={`item-delivery-${item.id}`} />
+                                            <Checkbox checked={edited.delivery_enabled} onCheckedChange={(checked) => updateEditedItem(item.id, "delivery_enabled", checked === true)} id={`item-delivery-${item.id}`} disabled={isLockedAppendix} />
                                             <Label htmlFor={`item-delivery-${item.id}`}>Delivery</Label>
                                           </div>
                                           {edited.delivery_enabled && (
-                                            <Input value={edited.delivery_terms} onChange={(event) => updateEditedItem(item.id, "delivery_terms", event.target.value)} placeholder="Delivery terms" />
+                                            <Input value={edited.delivery_terms} onChange={(event) => updateEditedItem(item.id, "delivery_terms", event.target.value)} placeholder="Delivery terms" disabled={isLockedAppendix} />
                                           )}
                                         </div>
                                       </TableCell>
                                       <TableCell>
                                         <div className="flex justify-end gap-2">
-                                          <Button size="sm" onClick={() => handleUpdateItem(item.id)} disabled={updateContractItem.isPending}>
+                                          <Button size="sm" onClick={() => handleUpdateItem(item.id)} disabled={updateContractItem.isPending || isLockedAppendix}>
                                             Save
                                           </Button>
-                                          <Button variant="outline" size="icon" onClick={() => deleteContractItem.mutate(item.id)} disabled={deleteContractItem.isPending}>
+                                          <Button variant="outline" size="icon" onClick={() => deleteContractItem.mutate(item.id)} disabled={deleteContractItem.isPending || isLockedAppendix}>
                                             <Trash2 className="h-4 w-4" />
                                           </Button>
                                         </div>
@@ -481,7 +517,7 @@ export default function ContractItems() {
                             <Button
                               variant="outline"
                               onClick={() => void handlePinAndSaveAppendix(appendixNumber)}
-                              disabled={updateContractItem.isPending}
+                              disabled={updateContractItem.isPending || appendixItems.length === 0}
                             >
                               <Pin className="mr-2 h-4 w-4" /> Закрепить и сохранить приложение
                             </Button>
