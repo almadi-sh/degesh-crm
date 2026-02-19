@@ -40,6 +40,19 @@ if inspector.has_table("customers"):
             if column_name not in columns:
                 connection.execute(text(f"ALTER TABLE customers ADD COLUMN {column_name} VARCHAR"))
 
+if inspector.has_table("contract_items"):
+    columns = {column["name"] for column in inspector.get_columns("contract_items")}
+    if "appendix_number" not in columns:
+        with engine.begin() as connection:
+            if engine.dialect.name == "postgresql":
+                connection.execute(
+                    text("ALTER TABLE contract_items ADD COLUMN IF NOT EXISTS appendix_number INTEGER NOT NULL DEFAULT 1"),
+                )
+            else:
+                connection.execute(
+                    text("ALTER TABLE contract_items ADD COLUMN appendix_number INTEGER NOT NULL DEFAULT 1"),
+                )
+
 app = FastAPI(title="Corp System")
 
 app.add_middleware(
