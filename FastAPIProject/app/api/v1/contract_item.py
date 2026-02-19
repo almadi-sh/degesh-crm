@@ -1,13 +1,17 @@
 import logging
+from io import BytesIO
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
+from openpyxl import Workbook
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.models.contract import Contract
 from app.models.contract_item import ContractItem
 from app.models.inventory import Inventory
+from app.models.product import Product
 from app.schemas.contract_item import ContractItemCreate, ContractItemOut, ContractItemUpdate
 
 router = APIRouter(prefix="/contract-items", tags=["Contract Items"])
@@ -37,6 +41,19 @@ def _release_inventory(db: Session, product_id: int, quantity: float) -> None:
     db.add(inv)
 
 
+def _build_appendix_xlsx(rows: list[list[str | float]]) -> bytes:
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Appendix"
+
+    for row in rows:
+        worksheet.append(row)
+
+    output = BytesIO()
+    workbook.save(output)
+    return output.getvalue()
+
+
 @router.post("/", response_model=ContractItemOut)
 def create_contract_item(data: ContractItemCreate, db: Session = Depends(get_db)):
     contract = db.query(Contract).filter(Contract.id == data.contract_id).first()
@@ -58,6 +75,7 @@ def create_contract_item(data: ContractItemCreate, db: Session = Depends(get_db)
         vat_enabled=data.vat_enabled,
         delivery_enabled=data.delivery_enabled,
         delivery_terms=data.delivery_terms if data.delivery_enabled else None,
+        appendix_number=max(data.appendix_number, 1),
     )
     db.add(contract_item)
     db.commit()
@@ -78,6 +96,53 @@ def list_contract_items(
     if customer_id is not None:
         query = query.join(Contract).filter(Contract.customer_id == customer_id)
     return query.all()
+
+
+@router.get("/contract/{contract_id}/appendix/{appendix_number}/export-xlsx")
+def export_appendix_xlsx(contract_id: int, appendix_number: int, db: Session = Depends(get_db)):
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    items = (
+        db.query(ContractItem, Product)
+        .join(Product, Product.id == ContractItem.product_id)
+        .filter(ContractItem.contract_id == contract_id, ContractItem.appendix_number == appendix_number)
+        .all()
+    )
+    if not items:
+        raise HTTPException(status_code=404, detail="Appendix has no items")
+
+    rows: list[list[str | float]] = [
+        [
+            "Продукт",
+            "Количество, л/кг/п.е.",
+            "Цена вкл. НДС и таможенную пошлину, тенге/л/кг",
+            "Общая стоимость, тенге",
+            "Срок поставки",
+            "Срок оплаты",
+        ]
+    ]
+    for item, product in items:
+        price_with_vat = item.price * 1.16 if item.vat_enabled else item.price
+        rows.append(
+            [
+                product.name,
+                item.quantity,
+                price_with_vat,
+                item.total_amount,
+                item.delivery_terms or "",
+                "",
+            ]
+        )
+
+    file_bytes = _build_appendix_xlsx(rows)
+    filename = f"appendix-{appendix_number}-contract-{contract.contract_number}.xlsx"
+    return Response(
+        content=file_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.put("/{contract_item_id}", response_model=ContractItemOut)

@@ -14,6 +14,7 @@ class ContractItem(Base):
     vat_enabled = Column(Boolean, nullable=False, default=False, server_default="false")
     delivery_enabled = Column(Boolean, nullable=False, default=False, server_default="false")
     delivery_terms = Column(String, nullable=True)
+    appendix_number = Column(Integer, nullable=False, default=1, server_default="1")
 
     contract = relationship("Contract", back_populates="items")
     product = relationship("Product")

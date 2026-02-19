@@ -12,6 +12,7 @@ export interface ContractItem {
   vat_enabled: boolean;
   delivery_enabled: boolean;
   delivery_terms?: string | null;
+  appendix_number: number;
 }
 
 export interface ContractItemInsert {
@@ -22,6 +23,7 @@ export interface ContractItemInsert {
   vat_enabled: boolean;
   delivery_enabled: boolean;
   delivery_terms?: string | null;
+  appendix_number: number;
 }
 
 export type ContractItemUpdate = Partial<ContractItemInsert>;

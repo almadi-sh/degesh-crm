@@ -8,6 +8,7 @@ class ContractItemBase(BaseModel):
     vat_enabled: bool = False
     delivery_enabled: bool = False
     delivery_terms: Optional[str] = None
+    appendix_number: int = 1
 
 class ContractItemCreate(ContractItemBase):
     contract_id: int
@@ -19,6 +20,7 @@ class ContractItemUpdate(BaseModel):
     vat_enabled: Optional[bool] = None
     delivery_enabled: Optional[bool] = None
     delivery_terms: Optional[str] = None
+    appendix_number: Optional[int] = None
 
 class ContractItemOut(ContractItemBase):
     id: int
