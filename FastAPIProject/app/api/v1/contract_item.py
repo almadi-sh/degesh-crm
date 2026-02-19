@@ -1,6 +1,7 @@
 import logging
 from io import BytesIO
 from typing import List
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
@@ -138,10 +139,14 @@ def export_appendix_xlsx(contract_id: int, appendix_number: int, db: Session = D
 
     file_bytes = _build_appendix_xlsx(rows)
     filename = f"appendix-{appendix_number}-contract-{contract.contract_number}.xlsx"
+    ascii_filename = f"appendix-{appendix_number}-contract.xlsx"
+    content_disposition = (
+        f"attachment; filename={ascii_filename}; filename*=UTF-8''{quote(filename)}"
+    )
     return Response(
         content=file_bytes,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition},
     )
 
 
