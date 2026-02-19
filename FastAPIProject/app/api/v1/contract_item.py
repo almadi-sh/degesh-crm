@@ -61,6 +61,7 @@ def _build_appendix_xlsx(
 
     worksheet.merge_cells("A2:F2")
     worksheet["A2"] = parties_line
+    worksheet["A2"].font = Font(bold=True)
     worksheet["A2"].alignment = Alignment(horizontal="left")
 
     worksheet.merge_cells("A4:F4")
@@ -89,9 +90,9 @@ def _build_appendix_xlsx(
     worksheet.cell(row=footer_start_row + 2, column=1, value=seller_signature[1])
 
     buyer_column = 6
-    worksheet.cell(row=footer_start_row + 4, column=buyer_column, value="Покупатель:")
-    worksheet.cell(row=footer_start_row + 5, column=buyer_column, value=buyer_signature[0])
-    worksheet.cell(row=footer_start_row + 6, column=buyer_column, value=buyer_signature[1])
+    worksheet.cell(row=footer_start_row, column=buyer_column, value="Покупатель:")
+    worksheet.cell(row=footer_start_row + 1, column=buyer_column, value=buyer_signature[0])
+    worksheet.cell(row=footer_start_row + 2, column=buyer_column, value=buyer_signature[1])
 
     worksheet.column_dimensions["A"].width = 38
     worksheet.column_dimensions["B"].width = 18
