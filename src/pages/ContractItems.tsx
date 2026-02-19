@@ -197,9 +197,26 @@ export default function ContractItems() {
     });
   };
 
-  const handlePinAppendix = () => {
-    setActiveAppendixNumber((prev) => prev + 1);
-    toast.success(`Создано Приложение ${activeAppendixNumber + 1}`);
+  const handlePinAndSaveAppendix = async (appendixNumber: number) => {
+    const appendixItems = itemsByAppendix.get(appendixNumber) ?? [];
+
+    for (const item of appendixItems) {
+      const payload = editedItems[item.id];
+      if (!payload) continue;
+      await updateContractItem.mutateAsync({
+        id: item.id,
+        product_id: payload.product_id,
+        quantity: payload.quantity,
+        price: payload.price,
+        vat_enabled: payload.vat_enabled,
+        delivery_enabled: payload.delivery_enabled,
+        delivery_terms: payload.delivery_enabled ? payload.delivery_terms : null,
+      });
+    }
+
+    const nextAppendix = appendixNumber + 1;
+    setActiveAppendixNumber(nextAppendix);
+    toast.success(`Приложение ${appendixNumber} закреплено. Добавление продолжится в Приложение ${nextAppendix}.`);
   };
 
   const handleDownloadAppendix = async (appendixNumber: number) => {
@@ -362,9 +379,6 @@ export default function ContractItems() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">Приложение {activeAppendixNumber}</Badge>
-                        <Button variant="outline" onClick={handlePinAppendix}>
-                          <Pin className="mr-2 h-4 w-4" /> Закрепить и создать следующее
-                        </Button>
                         <Button onClick={handleAddItem} disabled={!newItem.product_id || createContractItem.isPending}>
                           Add item
                         </Button>
@@ -462,6 +476,17 @@ export default function ContractItems() {
                             </TableBody>
                           </Table>
                         </div>
+                        {appendixNumber === activeAppendixNumber && (
+                          <div className="flex justify-end">
+                            <Button
+                              variant="outline"
+                              onClick={() => void handlePinAndSaveAppendix(appendixNumber)}
+                              disabled={updateContractItem.isPending}
+                            >
+                              <Pin className="mr-2 h-4 w-4" /> Закрепить и сохранить приложение
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
