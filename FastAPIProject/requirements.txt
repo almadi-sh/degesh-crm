@@ -4,5 +4,4 @@ sqlalchemy
 python-dotenv
 psycopg2-binary
 python-docx
-
 openpyxl
