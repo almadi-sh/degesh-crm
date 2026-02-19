@@ -165,11 +165,14 @@ export default function ContractItems() {
 
   useEffect(() => {
     if (!activeContractId) return;
-    const maxAppendix = Math.max(...appendixNumbers);
+    const maxAppendix = activeItems.reduce((maxValue, item) => {
+      const appendixNumber = item.appendix_number || 1;
+      return Math.max(maxValue, appendixNumber);
+    }, 0);
     const storedNextAppendix = getStoredNextAppendix(activeContractId);
     const calculatedNextAppendix = maxAppendix > 0 ? maxAppendix + 1 : 1;
     setActiveAppendixNumber(Math.max(calculatedNextAppendix, storedNextAppendix ?? 1));
-  }, [activeContractId, appendixNumbers]);
+  }, [activeContractId, activeItems]);
 
   const openManageDialog = (contractId: number) => {
     setActiveContractId(contractId);

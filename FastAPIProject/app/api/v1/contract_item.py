@@ -6,7 +6,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font
+from openpyxl.styles import Alignment, Border, Font, Side
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -68,22 +68,30 @@ def _build_appendix_xlsx(
     worksheet["A4"].font = Font(bold=True)
     worksheet["A4"].alignment = Alignment(horizontal="center")
 
+    thin_side = Side(style="thin")
+    table_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
     table_start_row = 5
     for index, row in enumerate(rows):
         for column_index, value in enumerate(row, start=1):
             cell = worksheet.cell(row=table_start_row + index, column=column_index, value=value)
+            cell.border = table_border
             if index == 0:
                 cell.font = Font(bold=True)
                 cell.alignment = Alignment(horizontal="center", wrap_text=True)
+            else:
+                horizontal_alignment = "left" if column_index == 1 else "center"
+                cell.alignment = Alignment(horizontal=horizontal_alignment, vertical="center", wrap_text=True)
 
     footer_start_row = table_start_row + len(rows) + 2
     worksheet.cell(row=footer_start_row, column=1, value="Продавец:")
     worksheet.cell(row=footer_start_row + 1, column=1, value=seller_signature[0])
     worksheet.cell(row=footer_start_row + 2, column=1, value=seller_signature[1])
 
-    worksheet.cell(row=footer_start_row + 4, column=1, value="Покупатель:")
-    worksheet.cell(row=footer_start_row + 5, column=1, value=buyer_signature[0])
-    worksheet.cell(row=footer_start_row + 6, column=1, value=buyer_signature[1])
+    buyer_column = 6
+    worksheet.cell(row=footer_start_row + 4, column=buyer_column, value="Покупатель:")
+    worksheet.cell(row=footer_start_row + 5, column=buyer_column, value=buyer_signature[0])
+    worksheet.cell(row=footer_start_row + 6, column=buyer_column, value=buyer_signature[1])
 
     worksheet.column_dimensions["A"].width = 38
     worksheet.column_dimensions["B"].width = 18
