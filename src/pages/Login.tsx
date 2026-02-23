@@ -45,13 +45,13 @@ export default function Login() {
         </div>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Эл. почта</Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
+              placeholder="example.kz"
             />
           </div>
           <div className="space-y-2">

@@ -15,11 +15,11 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import { useState } from "react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Customers", href: "/clients", icon: Users },
-  { name: "Contracts", href: "/contracts", icon: FileText },
-  { name: "Contract Items", href: "/contract-items", icon: FileText },
-  { name: "Inventory", href: "/inventory", icon: Boxes },
+  { name: "Главная", href: "/", icon: LayoutDashboard },
+  { name: "Покупатели", href: "/clients", icon: Users },
+  { name: "Договоры", href: "/contracts", icon: FileText },
+  { name: "Приложения", href: "/contract-items", icon: FileText },
+  { name: "Склад", href: "/inventory", icon: Boxes },
 ];
 
 interface SidebarContentProps {
@@ -39,7 +39,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-sidebar-foreground">AgroCRM</h1>
-            <p className="text-xs text-sidebar-foreground/60">Farm Management</p>
+            <p className="text-xs text-sidebar-foreground/60">Управление агробизнесом</p>
           </div>
         </div>
 
@@ -87,10 +87,10 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
           )}
           <div className="rounded-lg bg-sidebar-accent p-4">
             <p className="text-sm text-sidebar-foreground/80">
-              Growing success together
+              Растем и развиваемся вместе
             </p>
             <p className="text-xs text-sidebar-foreground/50 mt-1">
-              Agricultural CRM v1.0
+              Аграрная CRM v1.0
             </p>
           </div>
         </div>
@@ -119,12 +119,12 @@ export function MobileSidebar() {
       </div>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Open menu">
+          <Button variant="ghost" size="icon" aria-label="Открыть меню">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="h-[100dvh] w-full max-w-[320px] p-0 sm:w-[min(85vw,320px)]">
-          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <SheetTitle className="sr-only">Навигация</SheetTitle>
           <SidebarContent onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>

@@ -22,8 +22,8 @@ export default function Inventory() {
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground font-display">Inventory + Reservations</h1>
-          <p className="text-muted-foreground mt-1">Unified snapshot и приоритетная лента броней по продуктам.</p>
+          <h1 className="text-3xl font-bold text-foreground font-display">Склад и брони</h1>
+          <p className="text-muted-foreground mt-1">Единая сводка и приоритетная лента броней по товарам.</p>
         </div>
 
         <div className="max-w-md">
@@ -35,7 +35,7 @@ export default function Inventory() {
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4">
-          <h2 className="mb-3 text-lg font-semibold">Snapshot по продуктам</h2>
+          <h2 className="mb-3 text-lg font-semibold">Сводка по товарам</h2>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Загрузка...</p>
           ) : (
@@ -73,7 +73,7 @@ export default function Inventory() {
             Приоритетные брони{activeProduct ? `: ${activeProduct.product_name}` : ""}
           </h2>
           {!activeProductId ? (
-            <p className="text-sm text-muted-foreground">Выберите препарат из snapshot, чтобы увидеть ленту бронирований.</p>
+            <p className="text-sm text-muted-foreground">Выберите товар из сводки, чтобы увидеть ленту бронирований.</p>
           ) : isTimelineLoading ? (
             <p className="text-sm text-muted-foreground">Загрузка ленты броней...</p>
           ) : (

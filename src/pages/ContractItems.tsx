@@ -169,8 +169,8 @@ export default function ContractItems() {
       return Math.max(maxValue, appendixNumber);
     }, 0);
     const storedNextAppendix = getStoredNextAppendix(activeContractId);
-    const calculatedNextAppendix = maxAppendix > 0 ? maxAppendix + 1 : 1;
-    setActiveAppendixNumber(Math.max(calculatedNextAppendix, storedNextAppendix ?? 1));
+    const defaultAppendix = maxAppendix > 0 ? maxAppendix : 1;
+    setActiveAppendixNumber(storedNextAppendix ?? defaultAppendix);
   }, [activeContractId, activeItems]);
 
 
@@ -277,7 +277,7 @@ export default function ContractItems() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to download appendix";
+      const message = error instanceof Error ? error.message : "Не удалось скачать приложение";
       toast.error(message);
     }
   };
@@ -297,20 +297,20 @@ export default function ContractItems() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground font-display">Contract Items</h1>
-            <p className="text-muted-foreground mt-1">Review contract totals and manage products per agreement</p>
+            <h1 className="text-3xl font-bold text-foreground font-display">Приложения к договорам</h1>
+            <p className="text-muted-foreground mt-1">Проверка сумм по договорам и управление товарами в приложениях</p>
           </div>
         </div>
 
         <div className="flex gap-4">
           <div className="w-80 space-y-2">
-            <Label>Filter by customer</Label>
+            <Label>Фильтр по покупателю</Label>
             <Select value={selectedCustomer ? String(selectedCustomer) : "all"} onValueChange={(value) => setSelectedCustomer(value === "all" ? null : Number(value))}>
               <SelectTrigger>
-                <SelectValue placeholder="All customers" />
+                <SelectValue placeholder="Все покупатели" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All customers</SelectItem>
+                <SelectItem value="all">Все покупатели</SelectItem>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={String(client.id)}>
                     {client.name}
@@ -323,15 +323,15 @@ export default function ContractItems() {
 
         <div className="bg-card rounded-xl border border-border overflow-hidden">
           {ownedContracts.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">No contracts yet. Create a contract to start adding items.</div>
+            <div className="p-8 text-center text-muted-foreground">Договоров пока нет. Создайте договор, чтобы добавлять позиции.</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="table-header">
-                  <TableHead>Contract</TableHead>
-                  <TableHead>Price (without VAT)</TableHead>
-                  <TableHead>Price (with VAT)</TableHead>
-                  <TableHead>Delivery</TableHead>
+                  <TableHead>Договор</TableHead>
+                  <TableHead>Сумма (без НДС)</TableHead>
+                  <TableHead>Сумма (с НДС)</TableHead>
+                  <TableHead>Доставка</TableHead>
                   <TableHead className="w-[140px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -345,16 +345,16 @@ export default function ContractItems() {
                         </div>
                         <div>
                           <p className="font-medium text-foreground">{contract.contract_number}</p>
-                          <p className="text-xs text-muted-foreground">{customersById.get(contract.customer_id)?.name ?? "Unknown"}</p>
+                          <p className="text-xs text-muted-foreground">{customersById.get(contract.customer_id)?.name ?? "Неизвестно"}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-semibold text-foreground">${totalWithoutVat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                     <TableCell className="font-semibold text-foreground">${totalWithVat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell>{deliveryEnabled ? <Badge variant="secondary">Enabled</Badge> : <Badge variant="outline">No delivery</Badge>}</TableCell>
+                    <TableCell>{deliveryEnabled ? <Badge variant="secondary">Включена</Badge> : <Badge variant="outline">Без доставки</Badge>}</TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm" onClick={() => openManageDialog(contract.id)}>
-                        {items.length ? "Edit items" : "Add items"}
+                        {items.length ? "Редактировать" : "Добавить"}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -377,16 +377,16 @@ export default function ContractItems() {
           <DialogContent className="max-w-5xl overflow-hidden p-0">
             <div className="flex max-h-[90vh] flex-col">
               <DialogHeader className="px-6 pt-6">
-                <DialogTitle className="font-display text-xl">Manage items for {activeContractId ? contractsById.get(activeContractId)?.contract_number : ""}</DialogTitle>
+                <DialogTitle className="font-display text-xl">Управление позициями: {activeContractId ? contractsById.get(activeContractId)?.contract_number : ""}</DialogTitle>
               </DialogHeader>
               <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pr-2">
                 <div className="space-y-6">
                   <div className="grid grid-cols-12 gap-3 items-end rounded-lg border border-border p-4">
                     <div className="col-span-4 space-y-2">
-                      <Label>Product *</Label>
+                      <Label>Товар *</Label>
                       <Select value={newItem.product_id ? String(newItem.product_id) : ""} onValueChange={(value) => setNewItem({ ...newItem, product_id: Number(value) })}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select product" />
+                          <SelectValue placeholder="Выберите товар" />
                         </SelectTrigger>
                         <SelectContent>
                           {products.map((product) => (
@@ -398,33 +398,33 @@ export default function ContractItems() {
                       </Select>
                     </div>
                     <div className="col-span-2 space-y-2">
-                      <Label>Qty</Label>
+                      <Label>Кол-во</Label>
                       <Input type="number" min="1" step="1" value={newItem.quantity} onChange={(event) => setNewItem({ ...newItem, quantity: Number(event.target.value) })} />
                     </div>
                     <div className="col-span-2 space-y-2">
-                      <Label>Price</Label>
+                      <Label>Цена</Label>
                       <Input type="number" min="0" step="0.01" value={newItem.price} onChange={(event) => setNewItem({ ...newItem, price: Number(event.target.value) })} />
                     </div>
                     <div className="col-span-2 space-y-2">
-                      <Label>Price (with VAT)</Label>
+                      <Label>Цена (с НДС)</Label>
                       <Input value={(newItem.price * (newItem.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)} readOnly />
                     </div>
                     <div className="col-span-2 flex items-center gap-2">
                       <Checkbox checked={newItem.vat_enabled} onCheckedChange={(checked) => setNewItem({ ...newItem, vat_enabled: checked === true })} id="new-item-vat" />
-                      <Label htmlFor="new-item-vat">VAT 16%</Label>
+                      <Label htmlFor="new-item-vat">НДС 16%</Label>
                     </div>
                     <div className="col-span-12 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-2">
                         <Checkbox checked={newItem.delivery_enabled} onCheckedChange={(checked) => setNewItem({ ...newItem, delivery_enabled: Boolean(checked) })} id="delivery-enabled" />
-                        <Label htmlFor="delivery-enabled">Has delivery</Label>
+                        <Label htmlFor="delivery-enabled">Есть доставка</Label>
                         {newItem.delivery_enabled && (
-                          <Input className="ml-4" value={newItem.delivery_terms} onChange={(event) => setNewItem({ ...newItem, delivery_terms: event.target.value })} placeholder="Delivery terms" />
+                          <Input className="ml-4" value={newItem.delivery_terms} onChange={(event) => setNewItem({ ...newItem, delivery_terms: event.target.value })} placeholder="Условия доставки" />
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">Приложение {activeAppendixNumber}</Badge>
                         <Button onClick={handleAddItem} disabled={!newItem.product_id || createContractItem.isPending}>
-                          Add item
+                          Добавить позицию
                         </Button>
                       </div>
                     </div>
@@ -448,12 +448,12 @@ export default function ContractItems() {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Product</TableHead>
-                                <TableHead>Qty</TableHead>
-                                <TableHead>Price (without VAT)</TableHead>
-                                <TableHead>Price (with VAT)</TableHead>
-                                <TableHead>VAT</TableHead>
-                                <TableHead>Delivery</TableHead>
+                                <TableHead>Товар</TableHead>
+                                <TableHead>Кол-во</TableHead>
+                                <TableHead>Цена (без НДС)</TableHead>
+                                <TableHead>Цена (с НДС)</TableHead>
+                                <TableHead>НДС</TableHead>
+                                <TableHead>Доставка</TableHead>
                                 <TableHead className="w-[160px]"></TableHead>
                               </TableRow>
                             </TableHeader>
@@ -461,7 +461,7 @@ export default function ContractItems() {
                               {appendixItems.length === 0 ? (
                                 <TableRow>
                                   <TableCell colSpan={7} className="text-center text-muted-foreground">
-                                    No items in this appendix.
+                                    В этом приложении пока нет позиций.
                                   </TableCell>
                                 </TableRow>
                               ) : (
@@ -473,7 +473,7 @@ export default function ContractItems() {
                                       <TableCell>
                                         <Select disabled={isLockedAppendix} value={edited.product_id ? String(edited.product_id) : ""} onValueChange={(value) => updateEditedItem(item.id, "product_id", Number(value))}>
                                           <SelectTrigger>
-                                            <SelectValue placeholder="Select product" />
+                                            <SelectValue placeholder="Выберите товар" />
                                           </SelectTrigger>
                                           <SelectContent>
                                             {products.map((product) => (
@@ -500,17 +500,17 @@ export default function ContractItems() {
                                         <div className="space-y-2">
                                           <div className="flex items-center gap-2">
                                             <Checkbox checked={edited.delivery_enabled} onCheckedChange={(checked) => updateEditedItem(item.id, "delivery_enabled", checked === true)} id={`item-delivery-${item.id}`} disabled={isLockedAppendix} />
-                                            <Label htmlFor={`item-delivery-${item.id}`}>Delivery</Label>
+                                            <Label htmlFor={`item-delivery-${item.id}`}>Доставка</Label>
                                           </div>
                                           {edited.delivery_enabled && (
-                                            <Input value={edited.delivery_terms} onChange={(event) => updateEditedItem(item.id, "delivery_terms", event.target.value)} placeholder="Delivery terms" disabled={isLockedAppendix} />
+                                            <Input value={edited.delivery_terms} onChange={(event) => updateEditedItem(item.id, "delivery_terms", event.target.value)} placeholder="Условия доставки" disabled={isLockedAppendix} />
                                           )}
                                         </div>
                                       </TableCell>
                                       <TableCell>
                                         <div className="flex justify-end gap-2">
                                           <Button size="sm" onClick={() => handleUpdateItem(item.id)} disabled={updateContractItem.isPending || isLockedAppendix}>
-                                            Save
+                                            Сохранить
                                           </Button>
                                           <Button variant="outline" size="icon" onClick={() => deleteContractItem.mutate(item.id)} disabled={deleteContractItem.isPending || isLockedAppendix}>
                                             <Trash2 className="h-4 w-4" />
@@ -542,7 +542,7 @@ export default function ContractItems() {
               </div>
               <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
                 <Button variant="outline" onClick={closeManageDialog}>
-                  Close
+                  Закрыть
                 </Button>
               </div>
             </div>

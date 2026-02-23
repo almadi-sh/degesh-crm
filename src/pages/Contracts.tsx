@@ -54,11 +54,17 @@ export default function Contracts() {
   const customersById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients]);
   const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
 
-  const filteredContracts = contracts.filter((contract) => {
+const filteredContracts = contracts.filter((contract) => {
     if (user?.id && contract.owner_employee_id && contract.owner_employee_id !== user.id) return false;
     const customerName = customersById.get(contract.customer_id)?.name ?? "";
     return contract.contract_number.toLowerCase().includes(searchQuery.toLowerCase()) || customerName.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+});
+
+const statusLabels: Record<"Draft" | "Confirmed" | "Sent", string> = {
+  Draft: "Черновик",
+  Confirmed: "Подтвержден",
+  Sent: "Отправлен",
+};
 
   const activeContract = useMemo(
     () => (activeContractId ? contracts.find((contract) => contract.id === activeContractId) : undefined),
@@ -114,7 +120,7 @@ export default function Contracts() {
       previewBlobUrlRef.current = nextUrl;
       setContractPreviewPdfUrl(nextUrl);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load PDF preview";
+      const message = error instanceof Error ? error.message : "Не удалось загрузить предпросмотр PDF";
       toast.error(message);
     } finally {
       setIsContractPreviewLoading(false);
@@ -165,16 +171,16 @@ export default function Contracts() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      toast.success("Contract downloaded");
+      toast.success("Договор скачан");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to download contract";
+      const message = error instanceof Error ? error.message : "Не удалось скачать договор";
       toast.error(message);
     }
   };
 
   const handleResetContractDocument = async () => {
     if (!activeContract) return;
-    if (!window.confirm("Reset contract text to default template?")) return;
+    if (!window.confirm("Сбросить текст договора к шаблону по умолчанию?")) return;
 
     await resetContractDocument.mutateAsync({ id: activeContract.id });
     setDraftContractDocument(null);
@@ -197,7 +203,7 @@ export default function Contracts() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Delete this contract? This will remove all contract items.")) return;
+    if (!window.confirm("Удалить этот договор? Все позиции договора тоже будут удалены.")) return;
     await deleteContract.mutateAsync(id);
   };
 
@@ -206,26 +212,26 @@ export default function Contracts() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground font-display">Contracts</h1>
-            <p className="text-muted-foreground mt-1">Manage agreements with your customers</p>
+            <h1 className="text-3xl font-bold text-foreground font-display">Договоры</h1>
+            <p className="text-muted-foreground mt-1">Управление соглашениями с покупателями</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="w-full gap-2 sm:w-auto">
                 <Plus className="h-4 w-4" />
-                New Contract
+                Новый договор
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle className="font-display text-xl">Create New Contract</DialogTitle>
+                <DialogTitle className="font-display text-xl">Создать новый договор</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="customer_id">Customer *</Label>
+                  <Label htmlFor="customer_id">Покупатель *</Label>
                   <Select value={formData.customer_id ? String(formData.customer_id) : ""} onValueChange={(value) => setFormData({ ...formData, customer_id: Number(value) })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a customer" />
+                      <SelectValue placeholder="Выберите покупателя" />
                     </SelectTrigger>
                     <SelectContent>
                       {clients.map((client) => (
@@ -238,10 +244,10 @@ export default function Contracts() {
                 </div>
                 <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
+                    Отмена
                   </Button>
                   <Button type="submit" disabled={createContract.isPending || !formData.customer_id}>
-                    {createContract.isPending ? "Creating..." : "Create Contract"}
+                    {createContract.isPending ? "Создание..." : "Создать договор"}
                   </Button>
                 </div>
               </form>
@@ -251,24 +257,24 @@ export default function Contracts() {
 
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search contracts..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+          <Input placeholder="Поиск договоров..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Loading contracts...</div>
+            <div className="p-8 text-center text-muted-foreground">Загрузка договоров...</div>
           ) : filteredContracts.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">{searchQuery ? "No contracts found matching your search" : "No contracts yet. Create your first contract!"}</div>
+            <div className="p-8 text-center text-muted-foreground">{searchQuery ? "По вашему запросу договоры не найдены" : "Договоров пока нет. Создайте первый договор!"}</div>
           ) : (
             <Table className="min-w-[1080px]">
               <TableHeader>
                 <TableRow className="table-header">
-                  <TableHead>Contract</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Total</TableHead>
+                  <TableHead>Договор</TableHead>
+                  <TableHead>Покупатель</TableHead>
+                  <TableHead>Дата</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Позиции</TableHead>
+                  <TableHead>Итого</TableHead>
                   <TableHead className="w-[120px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -282,25 +288,25 @@ export default function Contracts() {
                         </div>
                         <div>
                           <p className="font-medium text-foreground">{contract.contract_number}</p>
-                          <p className="text-sm text-muted-foreground">{contract.items.length} item{contract.items.length === 1 ? "" : "s"}</p>
+                          <p className="text-sm text-muted-foreground">{contract.items.length} поз.</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <p className="font-medium text-foreground">{customersById.get(contract.customer_id)?.name ?? "Unknown"}</p>
+                      <p className="font-medium text-foreground">{customersById.get(contract.customer_id)?.name ?? "Неизвестно"}</p>
                     </TableCell>
                     <TableCell>{contract.contract_date ? format(new Date(contract.contract_date), "MMM dd, yyyy") : "—"}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Badge variant={contract.status === "Confirmed" ? "default" : contract.status === "Sent" ? "secondary" : "outline"}>{contract.status}</Badge>
+                        <Badge variant={contract.status === "Confirmed" ? "default" : contract.status === "Sent" ? "secondary" : "outline"}>{statusLabels[contract.status]}</Badge>
                         <Select value={contract.status} onValueChange={(value) => handleStatusChange(contract.id, value as "Draft" | "Confirmed" | "Sent")}>
                           <SelectTrigger className="h-8 w-[120px]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Draft">Draft</SelectItem>
-                            <SelectItem value="Confirmed">Confirmed</SelectItem>
-                            <SelectItem value="Sent">Sent</SelectItem>
+                            <SelectItem value="Draft">Черновик</SelectItem>
+                            <SelectItem value="Confirmed">Подтвержден</SelectItem>
+                            <SelectItem value="Sent">Отправлен</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -310,7 +316,7 @@ export default function Contracts() {
                     <TableCell>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => openContractDialog(contract.id)}>
-                          Contract
+                          Документ
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(contract.id)} className="text-muted-foreground hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
@@ -337,7 +343,7 @@ export default function Contracts() {
           <DialogContent className="max-w-5xl overflow-hidden p-0">
             <div className="flex max-h-[90vh] flex-col">
               <DialogHeader className="px-6 pt-6">
-                <DialogTitle className="font-display text-xl">Contract {activeContract?.contract_number ?? ""}</DialogTitle>
+                <DialogTitle className="font-display text-xl">Договор {activeContract?.contract_number ?? ""}</DialogTitle>
               </DialogHeader>
               <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pr-2">
                 {activeContract ? (
@@ -346,27 +352,27 @@ export default function Contracts() {
                       <div className="rounded-lg border border-border p-4 space-y-4">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <h3 className="text-lg font-semibold text-foreground">Contract overview</h3>
-                            <p className="text-sm text-muted-foreground">Customer and items included in this contract.</p>
+                            <h3 className="text-lg font-semibold text-foreground">Обзор договора</h3>
+                            <p className="text-sm text-muted-foreground">Покупатель и позиции, включенные в договор.</p>
                           </div>
                           <div className="flex gap-2">
                             <Button variant="outline" onClick={() => void refreshContractPreview()} disabled={isContractPreviewLoading}>
-                              {isContractPreviewLoading ? "Refreshing preview..." : "Refresh PDF preview"}
+                              {isContractPreviewLoading ? "Обновление предпросмотра..." : "Обновить PDF-предпросмотр"}
                             </Button>
-                            <Button onClick={handleDownloadContract}>Download PDF</Button>
+                            <Button onClick={handleDownloadContract}>Скачать PDF</Button>
                           </div>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2 text-sm">
                           <div>
-                            <p className="text-muted-foreground">Customer</p>
-                            <p className="font-medium text-foreground">{activeCustomer?.name ?? "Unknown"}</p>
+                            <p className="text-muted-foreground">Покупатель</p>
+                            <p className="font-medium text-foreground">{activeCustomer?.name ?? "Неизвестно"}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground">BIN/IIN</p>
                             <p className="font-medium text-foreground">{activeCustomer?.bin_iin ?? "—"}</p>
                           </div>
                           <div className="md:col-span-2">
-                            <p className="text-muted-foreground">Address</p>
+                            <p className="text-muted-foreground">Адрес</p>
                             <p className="font-medium text-foreground">{activeCustomer?.address ?? "—"}</p>
                           </div>
                         </div>
@@ -374,23 +380,23 @@ export default function Contracts() {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Product</TableHead>
-                                <TableHead>Qty</TableHead>
-                                <TableHead>Price</TableHead>
-                                <TableHead>Total</TableHead>
+                                <TableHead>Товар</TableHead>
+                                <TableHead>Кол-во</TableHead>
+                                <TableHead>Цена</TableHead>
+                                <TableHead>Итого</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {activeItems.length === 0 ? (
                                 <TableRow>
                                   <TableCell colSpan={4} className="text-center text-muted-foreground">
-                                    No items added yet.
+                                    Позиции пока не добавлены.
                                   </TableCell>
                                 </TableRow>
                               ) : (
                                 activeItems.map((item) => (
                                   <TableRow key={item.id}>
-                                    <TableCell>{productsById.get(item.product_id)?.name ?? "Unknown"}</TableCell>
+                                    <TableCell>{productsById.get(item.product_id)?.name ?? "Неизвестно"}</TableCell>
                                     <TableCell>{item.quantity}</TableCell>
                                     <TableCell>{item.price.toFixed(2)}</TableCell>
                                     <TableCell>{(item.total_amount ?? item.quantity * item.price).toFixed(2)}</TableCell>
@@ -404,13 +410,13 @@ export default function Contracts() {
 
                       <div className="rounded-lg border border-border p-4 space-y-3">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-base font-semibold text-foreground">PDF preview</h3>
-                          {isContractPreviewLoading && <span className="text-xs text-muted-foreground">Updating…</span>}
+                          <h3 className="text-base font-semibold text-foreground">Предпросмотр PDF</h3>
+                          {isContractPreviewLoading && <span className="text-xs text-muted-foreground">Обновление…</span>}
                         </div>
                         {contractPreviewPdfUrl ? (
-                          <iframe title="Contract PDF preview" src={contractPreviewPdfUrl} className="w-full h-[720px] rounded-md border border-border bg-background" />
+                          <iframe title="Предпросмотр PDF договора" src={contractPreviewPdfUrl} className="w-full h-[720px] rounded-md border border-border bg-background" />
                         ) : (
-                          <div className="rounded-md border border-dashed border-border p-6 text-sm text-muted-foreground">PDF preview is unavailable. Click “Refresh preview” to generate it.</div>
+                          <div className="rounded-md border border-dashed border-border p-6 text-sm text-muted-foreground">Предпросмотр PDF недоступен. Нажмите «Обновить предпросмотр», чтобы сформировать файл.</div>
                         )}
                       </div>
 
@@ -432,15 +438,15 @@ export default function Contracts() {
                       />
                     </div>
                   ) : (
-                    <div className="rounded-lg border border-border p-6 text-sm text-muted-foreground">Confirm the contract status to view and download the document.</div>
+                    <div className="rounded-lg border border-border p-6 text-sm text-muted-foreground">Подтвердите договор, чтобы просматривать и скачивать документ.</div>
                   )
                 ) : (
-                  <div className="rounded-lg border border-border p-6 text-sm text-muted-foreground">Select a contract to view its document.</div>
+                  <div className="rounded-lg border border-border p-6 text-sm text-muted-foreground">Выберите договор, чтобы открыть его документ.</div>
                 )}
               </div>
               <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
                 <Button variant="outline" onClick={closeContractDialog}>
-                  Close
+                  Закрыть
                 </Button>
               </div>
             </div>

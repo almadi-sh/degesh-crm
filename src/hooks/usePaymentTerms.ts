@@ -33,10 +33,10 @@ export function useCreatePaymentTerm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contract-items"] });
-      toast.success("Payment term created successfully");
+      toast.success("Условие оплаты успешно создано");
     },
     onError: (error) => {
-      toast.error("Failed to create payment term: " + error.message);
+      toast.error("Не удалось создать условие оплаты: " + error.message);
     },
   });
 }
@@ -53,10 +53,10 @@ export function useUpdatePaymentTerm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contract-items"] });
-      toast.success("Payment term updated successfully");
+      toast.success("Условие оплаты успешно обновлено");
     },
     onError: (error) => {
-      toast.error("Failed to update payment term: " + error.message);
+      toast.error("Не удалось обновить условие оплаты: " + error.message);
     },
   });
 }
@@ -72,10 +72,10 @@ export function useDeletePaymentTerm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contract-items"] });
-      toast.success("Payment term deleted successfully");
+      toast.success("Условие оплаты успешно удалено");
     },
     onError: (error) => {
-      toast.error("Failed to delete payment term: " + error.message);
+      toast.error("Не удалось удалить условие оплаты: " + error.message);
     },
   });
 }
