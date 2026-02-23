@@ -312,7 +312,7 @@ const statusLabels: Record<"Draft" | "Confirmed" | "Sent", string> = {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{contract.items.length}</TableCell>
-                    <TableCell className="font-semibold text-foreground">${contract.items.reduce((sum, item) => sum + (item.total_amount ?? item.price * item.quantity), 0).toLocaleString()}</TableCell>
+                    <TableCell className="font-semibold text-foreground">{contract.items.reduce((sum, item) => sum + (item.total_amount ?? item.price * item.quantity), 0).toLocaleString()} ₸</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => openContractDialog(contract.id)}>

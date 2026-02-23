@@ -26,6 +26,14 @@ const EMPTY_CLIENT: ClientInsert = {
   initial_contact_user: null,
 };
 
+const getSignerBasis = (legalForm: string | null | undefined, signerRole: string | null | undefined): string | null => {
+  if (legalForm === "ИП") return "Талон";
+  if (legalForm === "ТОО" && signerRole === "Директор") return "Устав";
+  if (legalForm === "ТОО" && signerRole === "Региональный представитель") return "Доверенность";
+  return null;
+};
+
+
 export default function Clients() {
   const { data: clients = [], isLoading } = useClients();
   const createClient = useCreateClient();
@@ -48,6 +56,24 @@ export default function Clients() {
     await createClient.mutateAsync(formData);
     setIsDialogOpen(false);
     setFormData(EMPTY_CLIENT);
+  };
+
+  const handleLegalFormChange = (value: string) => {
+    const nextBasis = getSignerBasis(value, formData.contract_signer_role);
+    setFormData({
+      ...formData,
+      legal_form: value,
+      contract_signer_basis: nextBasis ?? formData.contract_signer_basis,
+    });
+  };
+
+  const handleSignerRoleChange = (value: string) => {
+    const nextBasis = getSignerBasis(formData.legal_form, value);
+    setFormData({
+      ...formData,
+      contract_signer_role: value,
+      contract_signer_basis: nextBasis ?? formData.contract_signer_basis,
+    });
   };
 
   const handleDelete = async (id: number) => {
@@ -83,7 +109,7 @@ export default function Clients() {
                   </div>
                   <div className="space-y-2">
                     <Label>Форма лица</Label>
-                    <Select value={formData.legal_form ?? ""} onValueChange={(value) => setFormData({ ...formData, legal_form: value })}>
+                    <Select value={formData.legal_form ?? ""} onValueChange={handleLegalFormChange}>
                       <SelectTrigger><SelectValue placeholder="КХ / ТОО / ИП / ФХ" /></SelectTrigger>
                       <SelectContent>{["КХ", "ТОО", "ИП", "ФХ"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
                     </Select>
@@ -94,9 +120,9 @@ export default function Clients() {
                   </div>
                   <div className="space-y-2">
                     <Label>Роль подписанта</Label>
-                    <Select value={formData.contract_signer_role ?? ""} onValueChange={(value) => setFormData({ ...formData, contract_signer_role: value })}>
-                      <SelectTrigger><SelectValue placeholder="Директор / По доверенности" /></SelectTrigger>
-                      <SelectContent>{["Директор", "По доверенности"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
+                    <Select value={formData.contract_signer_role ?? ""} onValueChange={handleSignerRoleChange}>
+                      <SelectTrigger><SelectValue placeholder="Директор / Региональный представитель" /></SelectTrigger>
+                      <SelectContent>{["Директор", "Региональный представитель"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">

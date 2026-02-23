@@ -101,7 +101,7 @@ export function ContractDocumentEditor({
   if (!document || !header || !signatures) {
     return (
       <div className="rounded-lg border border-border p-6 text-sm text-muted-foreground">
-        Contract document is not available for this agreement yet.
+        Документ договора пока недоступен для этого соглашения.
       </div>
     );
   }
@@ -292,7 +292,7 @@ export function ContractDocumentEditor({
       </div>
 
       <div className="rounded-lg border border-border p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-foreground">Signatures</h3>
+        <h3 className="text-lg font-semibold text-foreground">Подписи</h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Подвязка к клиенту</Label>
@@ -345,7 +345,7 @@ export function ContractDocumentEditor({
             <Input value={signatures.buyer_phone ?? ""} onChange={(event) => updateSignature("buyer_phone", event.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Покупатель: Email (optional)</Label>
+            <Label>Покупатель: Email (необязательно)</Label>
             <Input value={signatures.buyer_email ?? ""} onChange={(event) => updateSignature("buyer_email", event.target.value)} />
           </div>
           <div className="space-y-2 md:col-span-2">
@@ -353,56 +353,56 @@ export function ContractDocumentEditor({
             <Textarea value={signatures.seller_details ?? ""} onChange={(event) => updateSignature("seller_details", event.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Seller label</Label>
+            <Label>Подпись продавца (заголовок)</Label>
             <Input
               value={signatures.seller_label}
               onChange={(event) => updateSignature("seller_label", event.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Buyer label</Label>
+            <Label>Подпись покупателя (заголовок)</Label>
             <Input
               value={signatures.buyer_label}
               onChange={(event) => updateSignature("buyer_label", event.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Seller position</Label>
+            <Label>Должность продавца</Label>
             <Input
               value={signatures.seller_position}
               onChange={(event) => updateSignature("seller_position", event.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Buyer position</Label>
+            <Label>Должность покупателя</Label>
             <Input
               value={signatures.buyer_position}
               onChange={(event) => updateSignature("buyer_position", event.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Seller name</Label>
+            <Label>ФИО продавца</Label>
             <Input
               value={signatures.seller_name}
               onChange={(event) => updateSignature("seller_name", event.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Buyer name</Label>
+            <Label>ФИО покупателя</Label>
             <Input
               value={signatures.buyer_name}
               onChange={(event) => updateSignature("buyer_name", event.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Seller stamp</Label>
+            <Label>Отметка продавца</Label>
             <Input
               value={signatures.seller_stamp}
               onChange={(event) => updateSignature("seller_stamp", event.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Buyer stamp</Label>
+            <Label>Отметка покупателя</Label>
             <Input
               value={signatures.buyer_stamp}
               onChange={(event) => updateSignature("buyer_stamp", event.target.value)}
@@ -417,10 +417,10 @@ export function ContractDocumentEditor({
           onClick={onResetToDefault}
           disabled={isSaving || isResetting}
         >
-          {isResetting ? "Resetting..." : "Back to default contract"}
+          {isResetting ? "Сброс..." : "Вернуть типовой договор"}
         </Button>
         <Button onClick={handleSave} disabled={isSaving || isResetting}>
-          {isSaving ? "Saving..." : isDirty ? "Save contract document" : "Saved"}
+          {isSaving ? "Сохранение..." : isDirty ? "Сохранить документ договора" : "Сохранено"}
         </Button>
       </div>
     </div>

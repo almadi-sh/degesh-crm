@@ -20,6 +20,33 @@ from app.models.contract import Contract
 DOCX_LINE_SPACING_MULTIPLE = 1.0
 
 
+def _get_customer_signer_role(customer) -> str:
+    role = str(getattr(customer, "contract_signer_role", "") or "").strip()
+    if role in {"Региональный представитель", "По доверенности"}:
+        return "Регионального представителя"
+    return "Директора"
+
+
+def _get_customer_signer_basis(customer) -> str:
+    legal_form = str(getattr(customer, "legal_form", "") or "").strip()
+    role = str(getattr(customer, "contract_signer_role", "") or "").strip()
+    basis = str(getattr(customer, "contract_signer_basis", "") or "").strip()
+
+    if legal_form == "ИП":
+        return "талона"
+    if legal_form == "ТОО" and role in {"Региональный представитель", "По доверенности"}:
+        return "доверенности"
+    if legal_form == "ТОО" and role == "Директор":
+        return "Устава"
+
+    if basis:
+        return basis[0].lower() + basis[1:] if len(basis) > 1 else basis.lower()
+
+    if role in {"Региональный представитель", "По доверенности"}:
+        return "доверенности"
+    return "Устава"
+
+
 def _set_times_new_roman_font(run) -> None:
     run.font.name = "Times New Roman"
     r_pr = run._element.get_or_add_rPr()
@@ -231,6 +258,13 @@ def build_default_contract_document(contract: Contract) -> dict:
     buyer_name = contract.customer.name if contract.customer else "ТОО «Покупатель»"
     buyer_bin = contract.customer.bin_iin if contract.customer else ""
     buyer_address = contract.customer.address if contract.customer else ""
+    buyer_signer_name = (
+        contract.customer.contract_signer_full_name
+        if contract.customer and contract.customer.contract_signer_full_name
+        else buyer_name
+    )
+    buyer_signer_role = _get_customer_signer_role(contract.customer) if contract.customer else "Директора"
+    buyer_signer_basis = _get_customer_signer_basis(contract.customer) if contract.customer else "Устава"
     document = {
         "header": {
             "title": "Договор",
@@ -242,8 +276,8 @@ def build_default_contract_document(contract: Contract) -> dict:
             "Товарищество с ограниченной ответственностью «Дегеш Агро ЛТД», "
             "именуемое в дальнейшем «Продавец», в лице директора Ширяев А.Е., "
             "действующего на основании Устава, с одной стороны, и "
-            f"{buyer_name}, именуемое в дальнейшем «ПОКУПАТЕЛЬ», в лице Директора ГРАБ Э., "
-            "действующего на основании Устава, с другой стороны, далее совместно "
+            f"{buyer_name}, именуемое в дальнейшем «ПОКУПАТЕЛЬ», в лице {buyer_signer_role} {buyer_signer_name}, "
+            f"действующего на основании {buyer_signer_basis}, с другой стороны, далее совместно "
             "именуемые «Стороны», заключили настоящий договор о нижеследующем:"
         ),
         "clauses": [
@@ -578,7 +612,7 @@ def build_default_contract_document(contract: Contract) -> dict:
             "seller_label": "«Продавец»",
             "buyer_label": "«Покупатель»",
             "seller_position": "Директор",
-            "buyer_position": "Директор",
+            "buyer_position": (contract.customer.contract_signer_role if contract.customer and contract.customer.contract_signer_role else "Директор"),
             "seller_name": "Ширяев А.Е.",
             "buyer_name": (contract.customer.contract_signer_full_name if contract.customer and contract.customer.contract_signer_full_name else ""),
             "seller_stamp": "м.п.",
@@ -1040,8 +1074,8 @@ def render_contract_document_docx(contract: Contract, document_payload_override:
     signatures_table = doc.add_table(rows=3, cols=2)
     signatures_table.autofit = True
 
-    signatures_table.cell(0, 0).text = seller_position
-    signatures_table.cell(0, 1).text = buyer_position
+    signatures_table.cell(0, 0).text = f"\n\n{seller_position}"
+    signatures_table.cell(0, 1).text = f"\n\n{buyer_position}"
 
     signatures_table.cell(1, 0).text = "____________________"
     signatures_table.cell(1, 1).text = "____________________"

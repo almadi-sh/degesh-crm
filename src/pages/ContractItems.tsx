@@ -78,7 +78,7 @@ export default function ContractItems() {
   const [newItem, setNewItem] = useState<EditableItem>({
     product_id: 0,
     quantity: 1,
-    price: 0,
+    price: Number.NaN,
     vat_enabled: false,
     delivery_enabled: false,
     delivery_terms: "",
@@ -195,7 +195,7 @@ export default function ContractItems() {
     setNewItem({
       product_id: 0,
       quantity: 1,
-      price: 0,
+      price: Number.NaN,
       vat_enabled: false,
       delivery_enabled: false,
       delivery_terms: "",
@@ -203,7 +203,7 @@ export default function ContractItems() {
   };
 
   const handleAddItem = async () => {
-    if (!activeContractId || !newItem.product_id) return;
+    if (!activeContractId || !newItem.product_id || Number.isNaN(newItem.price)) return;
     await createContractItem.mutateAsync({
       contract_id: activeContractId,
       product_id: newItem.product_id,
@@ -217,7 +217,7 @@ export default function ContractItems() {
     setNewItem({
       product_id: 0,
       quantity: 1,
-      price: 0,
+      price: Number.NaN,
       vat_enabled: false,
       delivery_enabled: false,
       delivery_terms: "",
@@ -349,8 +349,8 @@ export default function ContractItems() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-semibold text-foreground">${totalWithoutVat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="font-semibold text-foreground">${totalWithVat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="font-semibold text-foreground">{totalWithoutVat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₸</TableCell>
+                    <TableCell className="font-semibold text-foreground">{totalWithVat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₸</TableCell>
                     <TableCell>{deliveryEnabled ? <Badge variant="secondary">Включена</Badge> : <Badge variant="outline">Без доставки</Badge>}</TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm" onClick={() => openManageDialog(contract.id)}>
@@ -403,11 +403,22 @@ export default function ContractItems() {
                     </div>
                     <div className="col-span-2 space-y-2">
                       <Label>Цена</Label>
-                      <Input type="number" min="0" step="0.01" value={newItem.price} onChange={(event) => setNewItem({ ...newItem, price: Number(event.target.value) })} />
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={Number.isNaN(newItem.price) ? "" : newItem.price}
+                        onChange={(event) =>
+                          setNewItem({
+                            ...newItem,
+                            price: event.target.value === "" ? Number.NaN : Number(event.target.value),
+                          })
+                        }
+                      />
                     </div>
                     <div className="col-span-2 space-y-2">
                       <Label>Цена (с НДС)</Label>
-                      <Input value={(newItem.price * (newItem.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)} readOnly />
+                      <Input value={(Number.isNaN(newItem.price) ? 0 : newItem.price * (newItem.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)} readOnly />
                     </div>
                     <div className="col-span-2 flex items-center gap-2">
                       <Checkbox checked={newItem.vat_enabled} onCheckedChange={(checked) => setNewItem({ ...newItem, vat_enabled: checked === true })} id="new-item-vat" />
@@ -423,7 +434,7 @@ export default function ContractItems() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">Приложение {activeAppendixNumber}</Badge>
-                        <Button onClick={handleAddItem} disabled={!newItem.product_id || createContractItem.isPending}>
+                        <Button onClick={handleAddItem} disabled={!newItem.product_id || Number.isNaN(newItem.price) || createContractItem.isPending}>
                           Добавить позицию
                         </Button>
                       </div>
@@ -491,7 +502,7 @@ export default function ContractItems() {
                                         <Input type="number" min="0" step="0.01" value={edited.price} onChange={(event) => updateEditedItem(item.id, "price", Number(event.target.value))} disabled={isLockedAppendix} />
                                       </TableCell>
                                       <TableCell>
-                                        <Input value={(edited.price * (edited.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)} readOnly />
+                                        <Input value={(edited.price * (edited.vat_enabled ? 1 + VAT_RATE : 1)).toFixed(2)} readOnly disabled={isLockedAppendix} />
                                       </TableCell>
                                       <TableCell>
                                         <Checkbox checked={edited.vat_enabled} onCheckedChange={(checked) => updateEditedItem(item.id, "vat_enabled", checked === true)} disabled={isLockedAppendix} />
