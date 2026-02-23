@@ -25,10 +25,10 @@ const colorMap = {
 export function RecentActivity({ activities }: RecentActivityProps) {
   return (
     <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-4">Последняя активность</h3>
       <div className="space-y-4">
         {activities.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No recent activity</p>
+          <p className="text-muted-foreground text-sm">Нет недавней активности</p>
         ) : (
           activities.map((activity) => {
             const Icon = iconMap[activity.type];

@@ -58,10 +58,10 @@ export function useCreateContractItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contract-items"] });
-      toast.success("Contract item created successfully");
+      toast.success("Позиция договора успешно создана");
     },
     onError: (error) => {
-      toast.error("Failed to create contract item: " + error.message);
+      toast.error("Не удалось создать позицию договора: " + error.message);
     },
   });
 }
@@ -78,10 +78,10 @@ export function useUpdateContractItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contract-items"] });
-      toast.success("Contract item updated successfully");
+      toast.success("Позиция договора успешно обновлена");
     },
     onError: (error) => {
-      toast.error("Failed to update contract item: " + error.message);
+      toast.error("Не удалось обновить позицию договора: " + error.message);
     },
   });
 }
@@ -97,10 +97,10 @@ export function useDeleteContractItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contract-items"] });
-      toast.success("Contract item deleted successfully");
+      toast.success("Позиция договора успешно удалена");
     },
     onError: (error) => {
-      toast.error("Failed to delete contract item: " + error.message);
+      toast.error("Не удалось удалить позицию договора: " + error.message);
     },
   });
 }

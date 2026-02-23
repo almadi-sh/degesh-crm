@@ -51,7 +51,7 @@ export default function Clients() {
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this client?")) {
+    if (window.confirm("Вы уверены, что хотите удалить этого покупателя?")) {
       await deleteClient.mutateAsync(id);
     }
   };
@@ -61,19 +61,19 @@ export default function Clients() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground font-display">Customers</h1>
+            <h1 className="text-3xl font-bold text-foreground font-display">Покупатели</h1>
             <p className="text-muted-foreground mt-1">Расширенные реквизиты клиента для договора и подписей</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="w-full gap-2 sm:w-auto">
                 <Plus className="h-4 w-4" />
-                Add Customer
+                Добавить покупателя
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle className="font-display text-xl">Add New Customer</DialogTitle>
+                <DialogTitle className="font-display text-xl">Добавить нового покупателя</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-1">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -141,8 +141,8 @@ export default function Clients() {
                   </div>
                 </div>
                 <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" disabled={createClient.isPending}>{createClient.isPending ? "Creating..." : "Create Client"}</Button>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Отмена</Button>
+                  <Button type="submit" disabled={createClient.isPending}>{createClient.isPending ? "Создание..." : "Создать покупателя"}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -151,15 +151,15 @@ export default function Clients() {
 
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search customers..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+          <Input placeholder="Поиск покупателей..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          {isLoading ? <div className="p-8 text-center text-muted-foreground">Loading customers...</div> : filteredClients.length === 0 ? <div className="p-8 text-center text-muted-foreground">{searchQuery ? "No customers found matching your search" : "No customers yet. Add your first customer!"}</div> : (
+          {isLoading ? <div className="p-8 text-center text-muted-foreground">Загрузка покупателей...</div> : filteredClients.length === 0 ? <div className="p-8 text-center text-muted-foreground">{searchQuery ? "По вашему запросу покупатели не найдены" : "Покупателей пока нет. Добавьте первого покупателя!"}</div> : (
             <Table className="min-w-[840px]">
               <TableHeader>
                 <TableRow className="table-header">
-                  <TableHead>Customer</TableHead><TableHead>BIN/IIN</TableHead><TableHead>Address</TableHead><TableHead>Ответственные</TableHead><TableHead className="w-[80px]"></TableHead>
+                  <TableHead>Покупатель</TableHead><TableHead>BIN/IIN</TableHead><TableHead>Адрес</TableHead><TableHead>Ответственные</TableHead><TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
