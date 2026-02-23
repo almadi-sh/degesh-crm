@@ -14,6 +14,7 @@ from app.models.contract import Contract
 from app.models.contract_item import ContractItem
 from app.models.inventory import Inventory
 from app.models.product import Product
+from app.models.reservation import Reservation
 from app.schemas.contract_item import ContractItemCreate, ContractItemOut, ContractItemUpdate
 
 router = APIRouter(prefix="/contract-items", tags=["Contract Items"])
@@ -25,22 +26,63 @@ def _calculate_total_amount(quantity: float, price: float, vat_enabled: bool) ->
     return quantity * price * vat_multiplier
 
 
-def _reserve_inventory(db: Session, product_id: int, quantity: float) -> None:
-    inv = db.query(Inventory).filter(Inventory.product_id == product_id).first()
-    if not inv or inv.quantity_available < quantity:
-        raise HTTPException(status_code=400, detail=f"Not enough inventory for product_id {product_id}")
-    inv.quantity_available -= quantity
-    inv.quantity_reserved += quantity
-    db.add(inv)
-
-
-def _release_inventory(db: Session, product_id: int, quantity: float) -> None:
+def _get_inventory(db: Session, product_id: int) -> Inventory:
     inv = db.query(Inventory).filter(Inventory.product_id == product_id).first()
     if not inv:
-        return
-    inv.quantity_available += quantity
-    inv.quantity_reserved = max(inv.quantity_reserved - quantity, 0)
+        raise HTTPException(status_code=404, detail=f"Inventory not found for product_id {product_id}")
+    return inv
+
+
+def _reserve_inventory_delta(db: Session, product_id: int, quantity_delta: float) -> Inventory:
+    inv = _get_inventory(db, product_id)
+    if quantity_delta > 0 and inv.quantity_available < quantity_delta:
+        raise HTTPException(status_code=400, detail=f"Not enough inventory for product_id {product_id}")
+    inv.quantity_available -= quantity_delta
+    inv.quantity_reserved += quantity_delta
+    if inv.quantity_available < 0:
+        raise HTTPException(status_code=400, detail=f"Inventory cannot be negative for product_id {product_id}")
+    if inv.quantity_reserved < 0:
+        inv.quantity_reserved = 0
     db.add(inv)
+    return inv
+
+
+def _upsert_reservation(
+    db: Session,
+    contract: Contract,
+    contract_item: ContractItem,
+    quantity: float,
+    product_id: int,
+    status: str = "active",
+) -> Reservation:
+    reservation = db.query(Reservation).filter(Reservation.contract_item_id == contract_item.id).first()
+    inventory = _get_inventory(db, product_id)
+    if reservation:
+        reservation.inventory_id = inventory.id
+        reservation.product_id = product_id
+        reservation.contract_id = contract.id
+        reservation.contract_item_id = contract_item.id
+        reservation.employee_id = contract.owner_employee_id
+        reservation.customer_id = contract.customer_id
+        reservation.quantity = quantity
+        reservation.priority = contract_item.appendix_number
+        reservation.delivery_due_date = None
+        reservation.status = status
+    else:
+        reservation = Reservation(
+            inventory_id=inventory.id,
+            product_id=product_id,
+            contract_id=contract.id,
+            contract_item_id=contract_item.id,
+            employee_id=contract.owner_employee_id,
+            customer_id=contract.customer_id,
+            quantity=quantity,
+            priority=contract_item.appendix_number,
+            delivery_due_date=None,
+            status=status,
+        )
+    db.add(reservation)
+    return reservation
 
 
 def _build_appendix_xlsx(
@@ -115,7 +157,7 @@ def create_contract_item(data: ContractItemCreate, db: Session = Depends(get_db)
     if contract.status != "Draft":
         raise HTTPException(status_code=400, detail="Contract items can only be added in Draft status")
 
-    _reserve_inventory(db, data.product_id, data.quantity)
+    _reserve_inventory_delta(db, data.product_id, data.quantity)
     total_amount = _calculate_total_amount(data.quantity, data.price, data.vat_enabled)
 
     contract_item = ContractItem(
@@ -130,6 +172,8 @@ def create_contract_item(data: ContractItemCreate, db: Session = Depends(get_db)
         appendix_number=max(data.appendix_number, 1),
     )
     db.add(contract_item)
+    db.flush()
+    _upsert_reservation(db, contract, contract_item, data.quantity, data.product_id, status="active")
     db.commit()
     db.refresh(contract_item)
     logger.info("POST /contract-items -> %s", contract_item.id)
@@ -229,21 +273,20 @@ def update_contract_item(
     if contract_item.contract.status != "Draft":
         raise HTTPException(status_code=400, detail="Contract items can only be updated in Draft status")
 
+    old_product_id = contract_item.product_id
+    old_quantity = contract_item.quantity
     update_data = data.dict(exclude_unset=True)
     if update_data.get("delivery_enabled") is False:
         update_data["delivery_terms"] = None
-    if "product_id" in update_data or "quantity" in update_data:
-        new_product_id = update_data.get("product_id", contract_item.product_id)
-        new_quantity = update_data.get("quantity", contract_item.quantity)
-        if new_product_id != contract_item.product_id:
-            _release_inventory(db, contract_item.product_id, contract_item.quantity)
-            _reserve_inventory(db, new_product_id, new_quantity)
-        elif new_quantity != contract_item.quantity:
-            diff = new_quantity - contract_item.quantity
-            if diff > 0:
-                _reserve_inventory(db, contract_item.product_id, diff)
-            else:
-                _release_inventory(db, contract_item.product_id, abs(diff))
+
+    new_product_id = update_data.get("product_id", old_product_id)
+    new_quantity = update_data.get("quantity", old_quantity)
+
+    if new_product_id != old_product_id:
+        _reserve_inventory_delta(db, new_product_id, new_quantity)
+        _reserve_inventory_delta(db, old_product_id, -old_quantity)
+    elif new_quantity != old_quantity:
+        _reserve_inventory_delta(db, old_product_id, new_quantity - old_quantity)
 
     for key, value in update_data.items():
         setattr(contract_item, key, value)
@@ -255,6 +298,14 @@ def update_contract_item(
             contract_item.vat_enabled,
         )
 
+    _upsert_reservation(
+        db,
+        contract_item.contract,
+        contract_item,
+        contract_item.quantity,
+        contract_item.product_id,
+        status="active",
+    )
     db.commit()
     db.refresh(contract_item)
     logger.info("PUT /contract-items/%s", contract_item_id)
@@ -267,7 +318,13 @@ def delete_contract_item(contract_item_id: int, db: Session = Depends(get_db)):
     if not contract_item:
         raise HTTPException(status_code=404, detail="Contract item not found")
 
-    _release_inventory(db, contract_item.product_id, contract_item.quantity)
+    _reserve_inventory_delta(db, contract_item.product_id, -contract_item.quantity)
+    reservation = db.query(Reservation).filter(Reservation.contract_item_id == contract_item.id).first()
+    if reservation:
+        reservation.status = "released"
+        reservation.quantity = 0
+        db.add(reservation)
+
     db.delete(contract_item)
     db.commit()
     logger.info("DELETE /contract-items/%s", contract_item_id)

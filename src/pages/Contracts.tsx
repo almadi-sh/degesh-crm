@@ -23,7 +23,6 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, FileText, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
-import { getContractOwnerMap, getOwnedContractIds, setContractOwner } from "@/lib/contractOwnership";
 import { ContractDocumentEditor } from "@/components/contracts/ContractDocumentEditor";
 import { toast } from "sonner";
 import { apiFetchResponse } from "@/lib/apiClient";
@@ -43,7 +42,6 @@ export default function Contracts() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState<ContractInsert>({ customer_id: 0 });
-  const [ownerMap, setOwnerMap] = useState(() => getContractOwnerMap());
 
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [activeContractId, setActiveContractId] = useState<number | null>(null);
@@ -56,9 +54,8 @@ export default function Contracts() {
   const customersById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients]);
   const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
 
-  const ownedContractIds = new Set(getOwnedContractIds(ownerMap, user?.id ?? ""));
   const filteredContracts = contracts.filter((contract) => {
-    if (!ownedContractIds.has(contract.id)) return false;
+    if (user?.id && contract.owner_employee_id && contract.owner_employee_id !== user.id) return false;
     const customerName = customersById.get(contract.customer_id)?.name ?? "";
     return contract.contract_number.toLowerCase().includes(searchQuery.toLowerCase()) || customerName.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -186,13 +183,11 @@ export default function Contracts() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const createdContract = await createContract.mutateAsync({
+    await createContract.mutateAsync({
       ...formData,
       customer_id: Number(formData.customer_id),
+      owner_employee_id: user?.id ?? null,
     });
-    if (user) {
-      setOwnerMap(setContractOwner(createdContract.id, user.id));
-    }
     setIsDialogOpen(false);
     setFormData({ customer_id: 0 });
   };
