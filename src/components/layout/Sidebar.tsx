@@ -6,6 +6,7 @@ import {
   Leaf,
   LogOut,
   Menu,
+  Boxes,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ const navigation = [
   { name: "Customers", href: "/clients", icon: Users },
   { name: "Contracts", href: "/contracts", icon: FileText },
   { name: "Contract Items", href: "/contract-items", icon: FileText },
+  { name: "Inventory", href: "/inventory", icon: Boxes },
 ];
 
 interface SidebarContentProps {

@@ -30,6 +30,7 @@ def create_contract(data: ContractCreate, db: Session = Depends(get_db)):
         customer_id=data.customer_id,
         contract_date=date.today(),
         status="Draft",
+        owner_employee_id=data.owner_employee_id,
     )
     db.add(contract)
     db.commit()

@@ -85,6 +85,7 @@ class ContractDocument(BaseModel):
 
 class ContractBase(BaseModel):
     customer_id: int
+    owner_employee_id: str | None = None
     contract_number: str
     contract_date: date
     status: Literal["Draft", "Confirmed", "Sent"]
@@ -93,6 +94,7 @@ class ContractBase(BaseModel):
 
 class ContractCreate(BaseModel):
     customer_id: int
+    owner_employee_id: str | None = None
 
 class ContractUpdate(BaseModel):
     status: Literal["Draft", "Confirmed", "Sent"]

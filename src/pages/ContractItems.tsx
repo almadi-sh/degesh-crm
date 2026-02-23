@@ -19,9 +19,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { FileSpreadsheet, Pin, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { getContractOwnerMap, getOwnedContractIds } from "@/lib/contractOwnership";
 import { apiFetchResponse } from "@/lib/apiClient";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 interface EditableItem {
   product_id: number;
@@ -64,6 +64,7 @@ export default function ContractItems() {
   const { data: clients = [] } = useClients();
   const { data: products = [] } = useProducts();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCustomer, setSelectedCustomer] = useState<number | null>(null);
   const { data: contracts = [] } = useContracts(selectedCustomer ? { customer_id: selectedCustomer } : undefined);
   const { data: contractItems = [] } = useContractItems(selectedCustomer ? { customer_id: selectedCustomer } : undefined);
@@ -83,14 +84,12 @@ export default function ContractItems() {
     delivery_terms: "",
   });
   const [editedItems, setEditedItems] = useState<Record<number, EditableItem>>({});
-  const [ownerMap] = useState(() => getContractOwnerMap());
-
-  const ownedContractIds = useMemo(() => new Set(getOwnedContractIds(ownerMap, user?.id ?? "")), [ownerMap, user?.id]);
-  const ownedContracts = useMemo(() => contracts.filter((contract) => ownedContractIds.has(contract.id)), [contracts, ownedContractIds]);
-  const ownedContractItems = useMemo(
-    () => contractItems.filter((item) => ownedContractIds.has(item.contract_id)),
-    [contractItems, ownedContractIds],
+  const ownedContracts = useMemo(
+    () => contracts.filter((contract) => !user?.id || !contract.owner_employee_id || contract.owner_employee_id === user.id),
+    [contracts, user?.id],
   );
+  const ownedContractIds = useMemo(() => new Set(ownedContracts.map((contract) => contract.id)), [ownedContracts]);
+  const ownedContractItems = useMemo(() => contractItems.filter((item) => ownedContractIds.has(item.contract_id)), [contractItems, ownedContractIds]);
 
   const customersById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients]);
   const contractsById = useMemo(() => new Map(ownedContracts.map((contract) => [contract.id, contract])), [ownedContracts]);
@@ -174,6 +173,16 @@ export default function ContractItems() {
     setActiveAppendixNumber(Math.max(calculatedNextAppendix, storedNextAppendix ?? 1));
   }, [activeContractId, activeItems]);
 
+
+  useEffect(() => {
+    const contractIdParam = Number(searchParams.get("contractId") ?? 0);
+    const appendixParam = Number(searchParams.get("appendixNumber") ?? 0);
+    if (!contractIdParam) return;
+    setActiveContractId(contractIdParam);
+    setActiveAppendixNumber(appendixParam > 0 ? appendixParam : 1);
+    setIsManageDialogOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
   const openManageDialog = (contractId: number) => {
     setActiveContractId(contractId);
     setIsManageDialogOpen(true);

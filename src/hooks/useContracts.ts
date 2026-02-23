@@ -68,6 +68,7 @@ export interface ContractDocument {
 export interface Contract {
   id: number;
   customer_id: number;
+  owner_employee_id?: string | null;
   contract_number: string;
   contract_date: string;
   status: "Draft" | "Confirmed" | "Sent";
@@ -78,6 +79,7 @@ export interface Contract {
 
 export interface ContractInsert {
   customer_id: number;
+  owner_employee_id?: string | null;
 }
 
 export type ContractUpdate = { status: "Draft" | "Confirmed" | "Sent" };
