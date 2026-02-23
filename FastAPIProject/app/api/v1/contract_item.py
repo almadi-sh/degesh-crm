@@ -319,11 +319,10 @@ def delete_contract_item(contract_item_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Contract item not found")
 
     _reserve_inventory_delta(db, contract_item.product_id, -contract_item.quantity)
-    reservation = db.query(Reservation).filter(Reservation.contract_item_id == contract_item.id).first()
-    if reservation:
-        reservation.status = "released"
-        reservation.quantity = 0
-        db.add(reservation)
+
+    db.query(Reservation).filter(Reservation.contract_item_id == contract_item.id).delete(
+        synchronize_session=False,
+    )
 
     db.delete(contract_item)
     db.commit()

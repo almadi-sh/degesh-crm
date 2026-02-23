@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.models.contract import Contract
+from app.models.reservation import Reservation
 from app.schemas.contract import ContractCreate, ContractOut, ContractUpdate, ContractDocumentUpdate
 from app.api.deps import get_db
 from app.services.contract_document import (
@@ -193,6 +194,11 @@ def delete_contract(contract_id: int, db: Session = Depends(get_db)):
     contract = db.query(Contract).filter(Contract.id == contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found")
+
+    db.query(Reservation).filter(Reservation.contract_id == contract_id).delete(
+        synchronize_session=False,
+    )
+
     db.delete(contract)
     db.commit()
     logger.info("DELETE /contracts/%s", contract_id)
