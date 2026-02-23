@@ -22,6 +22,11 @@ from app.schemas.inventory import (
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 
+def _format_contract_number(contract_id: int, contract_date) -> str:
+    if not contract_id or not contract_date:
+        return "—"
+    return f"№{contract_id}-{contract_date:%m-%d}"
+
 
 @router.post("/", response_model=InventoryOut)
 def add_inventory(product_id: int, quantity: float, db: Session = Depends(get_db)):
@@ -114,7 +119,8 @@ def reservations_timeline(product_id: int, db: Session = Depends(get_db)):
             Reservation.delivery_due_date,
             Reservation.priority,
             Product.name.label("product_name"),
-            Contract.contract_number,
+            Contract.id.label("contract_id"),
+            Contract.contract_date,
             Customer.name.label("customer_name"),
             Employee.name.label("employee_name"),
             ContractItem.delivery_terms,
@@ -133,7 +139,7 @@ def reservations_timeline(product_id: int, db: Session = Depends(get_db)):
         ReservationTimelineItem(
             reservation_id=row.id,
             employee_name=row.employee_name or "Не назначен",
-            contract_number=row.contract_number,
+            contract_number=_format_contract_number(row.contract_id, row.contract_date),
             contract_id=row.contract_id,
             appendix_number=row.appendix_number,
             quantity=float(row.quantity),

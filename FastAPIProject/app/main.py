@@ -73,18 +73,6 @@ SEED_INCOMING = [
     ("ZHEJIANG CHEMICALS", "Мустер", 48000, False),
     ("ZHEJIANG CHEMICALS", "Талгам", 17200, False),
     ("HANGZHOU RUIJANG", "Сункар", 25000, False),
-    ("placeholder supplier", "Кловит", 11230, True),
-    ("placeholder supplier", "Имидор", 7200, True),
-    ("placeholder supplier", "Диома", 11520, True),
-    ("placeholder supplier", "Хитон", 144000, True),
-    ("placeholder supplier", "Триактив", 20000, True),
-    ("placeholder supplier", "Мощь", 17280, True),
-    ("placeholder supplier", "Интеграл", 20000, True),
-    ("placeholder supplier", "Авецид", 28800, True),
-    ("placeholder supplier", "Флокси микс", 5000, True),
-    ("placeholder supplier", "Нанкина", 16000, True),
-    ("placeholder supplier", "Супер стар", 8000, True),
-    ("placeholder supplier", "Мустанг", 6000, True),
 ]
 
 
