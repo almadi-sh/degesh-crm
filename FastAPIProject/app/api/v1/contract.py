@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.models.contract import Contract
+from app.models.inventory import Inventory
 from app.models.reservation import Reservation
 from app.schemas.contract import ContractCreate, ContractOut, ContractUpdate, ContractDocumentUpdate
 from app.api.deps import get_db
@@ -21,7 +22,7 @@ from app.services.contract_document import (
 )
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
-logger = logging.getLogger("uvicorn.access")
+logger = logging.getLogger(__name__)
 
 STATUS_VALUES = {"Draft", "Confirmed", "Sent"}
 
@@ -194,6 +195,16 @@ def delete_contract(contract_id: int, db: Session = Depends(get_db)):
     contract = db.query(Contract).filter(Contract.id == contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found")
+
+    for item in contract.items:
+        inventory = db.query(Inventory).filter(Inventory.product_id == item.product_id).first()
+        if not inventory:
+            continue
+        inventory.quantity_available += item.quantity
+        inventory.quantity_reserved -= item.quantity
+        if inventory.quantity_reserved < 0:
+            inventory.quantity_reserved = 0
+        db.add(inventory)
 
     db.query(Reservation).filter(Reservation.contract_id == contract_id).delete(
         synchronize_session=False,
