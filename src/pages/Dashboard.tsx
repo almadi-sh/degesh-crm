@@ -113,7 +113,7 @@ export default function Dashboard() {
                         <div>
                           <p className="font-medium text-foreground">{product.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {product.unit} • ${product.price.toLocaleString()}
+                            {product.unit} • {product.price.toLocaleString()} ₸
                           </p>
                         </div>
                         <div className="sm:text-right">
@@ -121,7 +121,7 @@ export default function Dashboard() {
                             {stock?.quantity_available ?? 0} в наличии
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {stock?.quantity_reserved ?? 0} reserved
+                            {stock?.quantity_reserved ?? 0} в резерве
                           </p>
                         </div>
                     </div>

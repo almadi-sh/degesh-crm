@@ -1,5 +1,6 @@
 import { FileText, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { ru } from "date-fns/locale";
 
 interface Activity {
   id: string;
@@ -40,7 +41,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-foreground">{activity.description}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                    {formatDistanceToNow(activity.timestamp, { addSuffix: true, locale: ru })}
                   </p>
                 </div>
               </div>
