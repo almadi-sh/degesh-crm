@@ -51,3 +51,14 @@ This project is built with:
 
 - `src/`: Vite + React frontend code.
 - `FastAPIProject/`: FastAPI backend code (API, models, schemas, and services).
+
+## Очистка базы данных
+
+Чтобы удалить все данные из таблиц (без удаления самих таблиц), выполните:
+
+```sh
+cd FastAPIProject
+DATABASE_URL=postgresql://admin_almadi:01180919a@localhost:5433/crm_db python scripts/clear_database.py
+```
+
+Скрипт делает `TRUNCATE ... RESTART IDENTITY CASCADE` для PostgreSQL и очищает все таблицы.
