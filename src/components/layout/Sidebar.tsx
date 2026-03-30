@@ -8,6 +8,7 @@ import {
   Boxes,
   PackagePlus,
   Archive,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ const navigation = [
   { name: "Поступления", href: "/incoming", icon: PackagePlus },
   { name: "Склад", href: "/inventory", icon: Boxes },
   { name: "Брони", href: "/reservations", icon: Archive },
+  { name: "Аналитика продаж", href: "/sales-analytics", icon: BarChart3 },
 ];
 
 interface SidebarContentProps {
