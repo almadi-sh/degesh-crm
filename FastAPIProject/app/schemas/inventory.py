@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel
 
@@ -43,3 +43,22 @@ class ReservationTimelineItem(BaseModel):
     delivery_due_date: date | None = None
     customer_name: str
     priority: int
+
+
+class InventoryReceiptCreate(BaseModel):
+    product_id: int
+    quantity: float
+    supplier_contract_number: str | None = None
+    supplier_name: str | None = None
+    comment: str | None = None
+
+
+class InventoryReceiptOut(BaseModel):
+    id: int
+    product_id: int
+    product_name: str
+    quantity: float
+    supplier_contract_number: str | None = None
+    supplier_name: str | None = None
+    comment: str | None = None
+    received_at: datetime

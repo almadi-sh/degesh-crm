@@ -43,6 +43,22 @@ if inspector.has_table("customers"):
             if column_name not in columns:
                 connection.execute(text(f"ALTER TABLE customers ADD COLUMN {column_name} VARCHAR"))
 
+
+if inspector.has_table("inventory_receipts"):
+    columns = {column["name"] for column in inspector.get_columns("inventory_receipts")}
+    with engine.begin() as connection:
+        if "supplier_contract_number" not in columns:
+            connection.execute(text("ALTER TABLE inventory_receipts ADD COLUMN supplier_contract_number VARCHAR"))
+        if "supplier_name" not in columns:
+            connection.execute(text("ALTER TABLE inventory_receipts ADD COLUMN supplier_name VARCHAR"))
+        if "comment" not in columns:
+            connection.execute(text("ALTER TABLE inventory_receipts ADD COLUMN comment VARCHAR"))
+        if "received_at" not in columns:
+            if engine.dialect.name == "postgresql":
+                connection.execute(text("ALTER TABLE inventory_receipts ADD COLUMN received_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()"))
+            else:
+                connection.execute(text("ALTER TABLE inventory_receipts ADD COLUMN received_at DATETIME DEFAULT CURRENT_TIMESTAMP"))
+
 if inspector.has_table("contract_items"):
     columns = {column["name"] for column in inspector.get_columns("contract_items")}
     if "appendix_number" not in columns:

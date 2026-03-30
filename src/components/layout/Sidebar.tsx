@@ -7,6 +7,8 @@ import {
   LogOut,
   Menu,
   Boxes,
+  PackagePlus,
+  Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,9 +19,12 @@ import { useState } from "react";
 const navigation = [
   { name: "Главная", href: "/", icon: LayoutDashboard },
   { name: "Покупатели", href: "/clients", icon: Users },
+  { name: "Клиенты", href: "/client-cards", icon: Users },
   { name: "Договоры", href: "/contracts", icon: FileText },
   { name: "Приложения", href: "/contract-items", icon: FileText },
+  { name: "Поступления", href: "/incoming", icon: PackagePlus },
   { name: "Склад", href: "/inventory", icon: Boxes },
+  { name: "Брони", href: "/reservations", icon: Archive },
 ];
 
 interface SidebarContentProps {
