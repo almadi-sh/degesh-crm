@@ -32,6 +32,25 @@ export interface ReservationTimelineItem {
   priority: number;
 }
 
+export interface InventoryReceipt {
+  id: number;
+  product_id: number;
+  product_name: string;
+  quantity: number;
+  received_at: string;
+  supplier_contract_number?: string | null;
+  supplier_name?: string | null;
+  comment?: string | null;
+}
+
+export interface CreateInventoryReceiptPayload {
+  product_id: number;
+  quantity: number;
+  supplier_contract_number?: string;
+  supplier_name?: string;
+  comment?: string;
+}
+
 export interface InventoryFilters {
   product_id?: number;
 }
@@ -78,6 +97,38 @@ export function useReservationsTimeline(productId?: number) {
       return apiFetch<ReservationTimelineItem[]>(`/api/v1/inventory/${productId}/reservations-timeline`);
     },
     enabled: !!productId,
+  });
+}
+
+export function useReservationsFeed() {
+  return useQuery({
+    queryKey: ["reservations-feed"],
+    queryFn: async () => apiFetch<ReservationTimelineItem[]>("/api/v1/inventory/reservations"),
+  });
+}
+
+export function useInventoryReceipts() {
+  return useQuery({
+    queryKey: ["inventory-receipts"],
+    queryFn: async () => apiFetch<InventoryReceipt[]>("/api/v1/inventory/receipts"),
+  });
+}
+
+export function useCreateInventoryReceipt() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: CreateInventoryReceiptPayload) => {
+      return apiFetch<InventoryReceipt>("/api/v1/inventory/receipts", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-receipts"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-snapshot"] });
+    },
   });
 }
 
