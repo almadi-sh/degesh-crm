@@ -3,10 +3,12 @@ import { Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useClients } from "@/hooks/useClients";
 import { useContracts } from "@/hooks/useContracts";
+import { useContractItems } from "@/hooks/useContractItems";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ClientCards() {
   const { data: clients = [], isLoading } = useClients();
@@ -26,13 +28,25 @@ export default function ClientCards() {
   }, [activeClientId, clients, filtered]);
 
   const { data: contracts = [] } = useContracts(activeClient ? { customer_id: activeClient.id } : undefined);
+  const { data: contractItems = [] } = useContractItems(activeClient ? { customer_id: activeClient.id } : undefined);
+
+  const itemsByContract = useMemo(() => {
+    const map = new Map<number, typeof contractItems>();
+    for (const item of contractItems) {
+      if (!map.has(item.contract_id)) {
+        map.set(item.contract_id, []);
+      }
+      map.get(item.contract_id)?.push(item);
+    }
+    return map;
+  }, [contractItems]);
 
   return (
     <MainLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground font-display">Клиенты</h1>
-          <p className="text-muted-foreground mt-1">Полная карточка клиента: реквизиты, подписант и связанные договоры.</p>
+          <p className="text-muted-foreground mt-1">Полная карточка клиента: реквизиты, подписант, сделки и приложения в одном экране.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px,1fr]">
@@ -88,9 +102,16 @@ export default function ClientCards() {
                     <div><p className="text-xs text-muted-foreground">Изначально скоммуницировал</p><p className="font-medium">{activeClient.initial_contact_user ?? "—"}</p></div>
                   </div>
 
-                  <div>
-                    <h3 className="mb-3 text-base font-semibold">Сделки / договоры</h3>
-                    <div className="space-y-2">
+                  <Tabs defaultValue="contracts" className="space-y-4">
+                    <TabsList>
+                      <TabsTrigger value="contracts">Сделки / договоры</TabsTrigger>
+                      <TabsTrigger value="appendices">Приложения</TabsTrigger>
+                      <TabsTrigger value="shipments">Отгрузки</TabsTrigger>
+                      <TabsTrigger value="payments">Платежи</TabsTrigger>
+                      <TabsTrigger value="history">История изменений</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="contracts" className="space-y-2">
                       {contracts.length === 0 ? (
                         <p className="text-sm text-muted-foreground">Нет договоров.</p>
                       ) : contracts.map((contract) => (
@@ -107,8 +128,58 @@ export default function ClientCards() {
                           </div>
                         </div>
                       ))}
-                    </div>
-                  </div>
+                    </TabsContent>
+
+                    <TabsContent value="appendices" className="space-y-2">
+                      {contracts.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Сначала создайте договор для клиента.</p>
+                      ) : contracts.map((contract) => {
+                        const items = itemsByContract.get(contract.id) ?? [];
+                        const appendixCount = new Set(items.map((item) => item.appendix_number || 1)).size;
+                        const latestAppendix = items.reduce((maxValue, item) => Math.max(maxValue, item.appendix_number || 1), 1);
+                        return (
+                          <div key={contract.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                            <div>
+                              <p className="font-medium">{contract.contract_number}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Позиции: {items.length} • Приложений: {appendixCount}
+                              </p>
+                            </div>
+                            <Link to={`/contract-items?contractId=${contract.id}&appendixNumber=${latestAppendix}`}>
+                              <Button size="sm" variant="outline">Редактировать</Button>
+                            </Link>
+                          </div>
+                        );
+                      })}
+                    </TabsContent>
+
+                    <TabsContent value="shipments" className="space-y-2">
+                      <div className="rounded-lg border border-dashed border-border p-4">
+                        <p className="text-sm font-medium">Отгрузки клиента</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Раздел подготовлен как задел: здесь будет лента отгрузок по договорам клиента.
+                        </p>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="payments" className="space-y-2">
+                      <div className="rounded-lg border border-dashed border-border p-4">
+                        <p className="text-sm font-medium">Платежи клиента</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Раздел подготовлен как задел: здесь появится журнал платежей и сверка оплат.
+                        </p>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="history" className="space-y-2">
+                      <div className="rounded-lg border border-dashed border-border p-4">
+                        <p className="text-sm font-medium">История изменений</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Раздел подготовлен как задел: здесь будет таймлайн изменений по клиенту, сделкам и приложениям.
+                        </p>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
               )}
             </CardContent>

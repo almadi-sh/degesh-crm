@@ -2,7 +2,6 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
-  FileText,
   Leaf,
   LogOut,
   Menu,
@@ -20,8 +19,6 @@ const navigation = [
   { name: "Главная", href: "/", icon: LayoutDashboard },
   { name: "Покупатели", href: "/clients", icon: Users },
   { name: "Клиенты", href: "/client-cards", icon: Users },
-  { name: "Договоры", href: "/contracts", icon: FileText },
-  { name: "Приложения", href: "/contract-items", icon: FileText },
   { name: "Поступления", href: "/incoming", icon: PackagePlus },
   { name: "Склад", href: "/inventory", icon: Boxes },
   { name: "Брони", href: "/reservations", icon: Archive },
