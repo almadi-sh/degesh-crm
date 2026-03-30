@@ -599,7 +599,6 @@ export default function ClientCards() {
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <Button size="sm" variant="outline" onClick={() => openContractDialog(contract.id)}>Документ</Button>
-                            <Button size="sm" variant="outline" onClick={() => openManageDialog(contract.id)}>Позиции и приложения</Button>
                             <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={() => handleDeleteContract(contract.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
