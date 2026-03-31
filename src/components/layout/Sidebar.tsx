@@ -20,6 +20,8 @@ const navigation = [
   { name: "Главная", href: "/", icon: LayoutDashboard },
   { name: "Покупатели", href: "/clients", icon: Users },
   { name: "Клиенты", href: "/client-cards", icon: Users },
+  { name: "Поставщики", href: "/suppliers", icon: Users },
+  { name: "Карточки поставщиков", href: "/supplier-cards", icon: Users },
   { name: "Поступления", href: "/incoming", icon: PackagePlus },
   { name: "Склад", href: "/inventory", icon: Boxes },
   { name: "Брони", href: "/reservations", icon: Archive },

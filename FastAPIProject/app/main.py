@@ -10,6 +10,7 @@ from app.models.employee import Employee
 from app.models.inventory import Inventory
 from app.models.inventory_receipt import InventoryReceipt
 from app.models.product import Product
+from app.models.supplier import Supplier
 
 Base.metadata.create_all(bind=engine)
 
@@ -43,12 +44,13 @@ if inspector.has_table("customers"):
             if column_name not in columns:
                 connection.execute(text(f"ALTER TABLE customers ADD COLUMN {column_name} VARCHAR"))
 
-
 if inspector.has_table("inventory_receipts"):
     columns = {column["name"] for column in inspector.get_columns("inventory_receipts")}
     with engine.begin() as connection:
         if "supplier_contract_number" not in columns:
             connection.execute(text("ALTER TABLE inventory_receipts ADD COLUMN supplier_contract_number VARCHAR"))
+        if "supplier_id" not in columns:
+            connection.execute(text("ALTER TABLE inventory_receipts ADD COLUMN supplier_id INTEGER"))
         if "supplier_name" not in columns:
             connection.execute(text("ALTER TABLE inventory_receipts ADD COLUMN supplier_name VARCHAR"))
         if "comment" not in columns:
@@ -134,7 +136,28 @@ def seed_initial_data() -> None:
         db.close()
 
 
+def backfill_receipt_suppliers() -> None:
+    db: Session = SessionLocal()
+    try:
+        receipts = db.query(InventoryReceipt).filter(InventoryReceipt.supplier_id.is_(None)).all()
+        for receipt in receipts:
+            legacy_name = (receipt.supplier_name or "").strip()
+            supplier_name = legacy_name or "Legacy Supplier"
+            supplier = db.query(Supplier).filter(Supplier.name == supplier_name).first()
+            if not supplier:
+                supplier = Supplier(name=supplier_name)
+                db.add(supplier)
+                db.flush()
+            receipt.supplier_id = supplier.id
+            if not receipt.supplier_name:
+                receipt.supplier_name = supplier.name
+        db.commit()
+    finally:
+        db.close()
+
+
 seed_initial_data()
+backfill_receipt_suppliers()
 
 app = FastAPI(title="Corp System")
 

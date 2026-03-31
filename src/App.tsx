@@ -11,6 +11,8 @@ import Inventory from "./pages/Inventory";
 import Incoming from "./pages/Incoming";
 import Reservations from "./pages/Reservations";
 import ClientCards from "./pages/ClientCards";
+import Suppliers from "./pages/Suppliers";
+import SupplierCards from "./pages/SupplierCards";
 import SalesAnalytics from "./pages/SalesAnalytics";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -37,6 +39,8 @@ const App = () => (
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/reservations" element={<Reservations />} />
               <Route path="/client-cards" element={<ClientCards />} />
+              <Route path="/suppliers" element={<Suppliers />} />
+              <Route path="/supplier-cards" element={<SupplierCards />} />
               <Route path="/sales-analytics" element={<SalesAnalytics />} />
               <Route path="*" element={<NotFound />} />
             </Route>
