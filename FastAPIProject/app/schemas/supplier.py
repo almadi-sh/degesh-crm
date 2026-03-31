@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, field_validator
 
 
 class SupplierBase(BaseModel):
@@ -9,7 +9,7 @@ class SupplierBase(BaseModel):
     legal_address: str | None = None
     contact_person: str | None = None
     phone: str | None = None
-    email: EmailStr | None = None
+    email: str | None = None
     payment_terms: str | None = None
     notes: str | None = None
     created_by_user: str | None = None
@@ -53,7 +53,7 @@ class SupplierUpdate(BaseModel):
     legal_address: str | None = None
     contact_person: str | None = None
     phone: str | None = None
-    email: EmailStr | None = None
+    email: str | None = None
     payment_terms: str | None = None
     notes: str | None = None
     created_by_user: str | None = None
