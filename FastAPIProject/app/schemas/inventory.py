@@ -48,8 +48,8 @@ class ReservationTimelineItem(BaseModel):
 class InventoryReceiptCreate(BaseModel):
     product_id: int
     quantity: float
+    supplier_id: int
     supplier_contract_number: str | None = None
-    supplier_name: str | None = None
     comment: str | None = None
 
 
@@ -58,6 +58,7 @@ class InventoryReceiptOut(BaseModel):
     product_id: int
     product_name: str
     quantity: float
+    supplier_id: int | None = None
     supplier_contract_number: str | None = None
     supplier_name: str | None = None
     comment: str | None = None

@@ -7,6 +7,8 @@ from app.models.inventory_receipt import InventoryReceipt
 from app.models.payment_term import PaymentTerm
 from app.models.product import Product
 from app.models.reservation import Reservation
+from app.models.supplier import Supplier
+from app.models.supplier_item import SupplierItem
 
 __all__ = [
     "Contract",
@@ -18,4 +20,6 @@ __all__ = [
     "PaymentTerm",
     "Product",
     "Reservation",
+    "Supplier",
+    "SupplierItem",
 ]

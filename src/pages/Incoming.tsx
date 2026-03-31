@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useProducts } from "@/hooks/useProducts";
 import { useCreateInventoryReceipt, useInventoryReceipts } from "@/hooks/useInventory";
+import { useSuppliers } from "@/hooks/useSuppliers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,11 +14,12 @@ const formatNumber = (value: number) => value.toLocaleString("ru-RU", { maximumF
 export default function Incoming() {
   const { data: products = [] } = useProducts();
   const { data: receipts = [], isLoading } = useInventoryReceipts();
+  const { data: suppliers = [] } = useSuppliers();
   const createReceipt = useCreateInventoryReceipt();
 
   const [productId, setProductId] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("");
-  const [supplierName, setSupplierName] = useState("");
+  const [supplierId, setSupplierId] = useState<string>("");
   const [contractNumber, setContractNumber] = useState("");
   const [comment, setComment] = useState("");
 
@@ -30,14 +32,14 @@ export default function Incoming() {
     await createReceipt.mutateAsync({
       product_id: Number(productId),
       quantity: Number(quantity),
-      supplier_name: supplierName || undefined,
+      supplier_id: Number(supplierId),
       supplier_contract_number: contractNumber || undefined,
       comment: comment || undefined,
     });
 
     setProductId("");
     setQuantity("");
-    setSupplierName("");
+    setSupplierId("");
     setContractNumber("");
     setComment("");
   };
@@ -70,7 +72,14 @@ export default function Incoming() {
             </div>
             <div className="space-y-2">
               <Label>Поставщик</Label>
-              <Input value={supplierName} onChange={(e) => setSupplierName(e.target.value)} placeholder="Например: HANGZHOU YUNRUN" />
+              <Select value={supplierId} onValueChange={setSupplierId}>
+                <SelectTrigger><SelectValue placeholder="Выберите поставщика" /></SelectTrigger>
+                <SelectContent>
+                  {suppliers.map((item) => (
+                    <SelectItem value={String(item.id)} key={item.id}>{item.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Контракт закупа</Label>
@@ -81,7 +90,7 @@ export default function Incoming() {
               <Input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Дополнительная информация" />
             </div>
             <div className="md:col-span-2 flex justify-end">
-              <Button type="submit" disabled={!productId || !quantity || createReceipt.isPending}>
+              <Button type="submit" disabled={!productId || !quantity || !supplierId || createReceipt.isPending}>
                 {createReceipt.isPending ? "Сохраняем..." : "Добавить поступление"}
               </Button>
             </div>

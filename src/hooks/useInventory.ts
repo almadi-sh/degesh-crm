@@ -38,6 +38,7 @@ export interface InventoryReceipt {
   product_name: string;
   quantity: number;
   received_at: string;
+  supplier_id?: number | null;
   supplier_contract_number?: string | null;
   supplier_name?: string | null;
   comment?: string | null;
@@ -46,8 +47,8 @@ export interface InventoryReceipt {
 export interface CreateInventoryReceiptPayload {
   product_id: number;
   quantity: number;
+  supplier_id: number;
   supplier_contract_number?: string;
-  supplier_name?: string;
   comment?: string;
 }
 

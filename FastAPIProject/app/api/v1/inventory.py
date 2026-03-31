@@ -12,6 +12,7 @@ from app.models.employee import Employee
 from app.models.inventory import Inventory
 from app.models.inventory_receipt import InventoryReceipt
 from app.models.product import Product
+from app.models.supplier import Supplier
 from app.models.reservation import Reservation
 from app.schemas.inventory import (
     InventoryOut,
@@ -37,6 +38,10 @@ def create_receipt(data: InventoryReceiptCreate, db: Session = Depends(get_db)):
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    supplier = db.query(Supplier).filter(Supplier.id == data.supplier_id).first()
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+
     inv = db.query(Inventory).filter(Inventory.product_id == data.product_id).first()
     if inv:
         inv.quantity_available += data.quantity
@@ -50,8 +55,9 @@ def create_receipt(data: InventoryReceiptCreate, db: Session = Depends(get_db)):
         product_id=data.product_id,
         quantity=data.quantity,
         needs_enrichment=False,
+        supplier_id=data.supplier_id,
         supplier_contract_number=data.supplier_contract_number,
-        supplier_name=data.supplier_name,
+        supplier_name=supplier.name,
         comment=data.comment,
     )
     db.add(receipt)
@@ -63,8 +69,9 @@ def create_receipt(data: InventoryReceiptCreate, db: Session = Depends(get_db)):
         product_id=receipt.product_id,
         product_name=product.name,
         quantity=float(receipt.quantity),
+        supplier_id=receipt.supplier_id,
         supplier_contract_number=receipt.supplier_contract_number,
-        supplier_name=receipt.supplier_name,
+        supplier_name=supplier.name,
         comment=receipt.comment,
         received_at=receipt.received_at,
     )
@@ -73,8 +80,13 @@ def create_receipt(data: InventoryReceiptCreate, db: Session = Depends(get_db)):
 @router.get("/receipts", response_model=List[InventoryReceiptOut])
 def list_receipts(db: Session = Depends(get_db)):
     rows = (
-        db.query(InventoryReceipt, Product.name.label("product_name"))
+        db.query(
+            InventoryReceipt,
+            Product.name.label("product_name"),
+            Supplier.name.label("supplier_name_join"),
+        )
         .join(Product, Product.id == InventoryReceipt.product_id)
+        .outerjoin(Supplier, Supplier.id == InventoryReceipt.supplier_id)
         .order_by(desc(InventoryReceipt.received_at), desc(InventoryReceipt.id))
         .all()
     )
@@ -85,12 +97,13 @@ def list_receipts(db: Session = Depends(get_db)):
             product_id=receipt.product_id,
             product_name=product_name,
             quantity=float(receipt.quantity),
+            supplier_id=receipt.supplier_id,
             supplier_contract_number=receipt.supplier_contract_number,
-            supplier_name=receipt.supplier_name,
+            supplier_name=supplier_name_join or receipt.supplier_name,
             comment=receipt.comment,
             received_at=receipt.received_at,
         )
-        for receipt, product_name in rows
+        for receipt, product_name, supplier_name_join in rows
     ]
 
 
@@ -153,7 +166,7 @@ def add_inventory(product_id: int, quantity: float, db: Session = Depends(get_db
         db.add(inv)
         db.flush()
 
-    receipt = InventoryReceipt(inventory_id=inv.id, product_id=product_id, quantity=quantity, needs_enrichment=False)
+    receipt = InventoryReceipt(inventory_id=inv.id, product_id=product_id, quantity=quantity, needs_enrichment=False, supplier_name=None)
     db.add(receipt)
     db.commit()
     db.refresh(inv)
