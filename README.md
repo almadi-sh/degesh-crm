@@ -31,7 +31,7 @@ cd FastAPIProject
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env  # then set DATABASE_URL
+cp .env .env  # then set DATABASE_URL
 # Debian/Ubuntu only: sudo apt-get install libreoffice-writer
 uvicorn app.main:app --reload
 ```
