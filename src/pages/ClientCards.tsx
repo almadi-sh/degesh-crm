@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useClients } from "@/hooks/useClients";
 import {
@@ -468,9 +469,14 @@ export default function ClientCards() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground font-display">Клиенты</h1>
-          <p className="text-muted-foreground mt-1">Полная карточка клиента: реквизиты, подписант, договоры и приложения в одном экране.</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground font-display">Покупатели</h1>
+            <p className="text-muted-foreground mt-1">Раздел объединяет список покупателей и карточки клиентов с договорами.</p>
+          </div>
+          <Button asChild>
+            <Link to="/clients">Добавить покупателя</Link>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px,1fr]">

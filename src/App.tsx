@@ -15,6 +15,7 @@ import ClientCards from "./pages/ClientCards";
 import Suppliers from "./pages/Suppliers";
 import SupplierCards from "./pages/SupplierCards";
 import SalesAnalytics from "./pages/SalesAnalytics";
+import InventoryAnalytics from "./pages/InventoryAnalytics";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import { AuthProvider } from "./hooks/useAuth";
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/suppliers" element={<Suppliers />} />
               <Route path="/supplier-cards" element={<SupplierCards />} />
               <Route path="/sales-analytics" element={<SalesAnalytics />} />
+              <Route path="/inventory-analytics" element={<InventoryAnalytics />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
