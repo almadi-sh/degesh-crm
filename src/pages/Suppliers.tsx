@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,8 @@ const setSupplierKind = (id: number, kind: SupplierKind) => {
 
 export default function Suppliers() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab") === "others" ? "others" : "buyers";
   const { data: buyers = [] } = useClients();
   const { data: suppliers = [], isLoading } = useSuppliers();
   const createSupplier = useCreateSupplier();
@@ -146,7 +149,7 @@ export default function Suppliers() {
           <Input className="pl-10" placeholder="Поиск по контрагентам" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
-        <Tabs defaultValue="buyers" className="space-y-4">
+        <Tabs defaultValue={defaultTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="buyers">Покупатель</TabsTrigger>
             <TabsTrigger value="suppliers">Поставщик</TabsTrigger>

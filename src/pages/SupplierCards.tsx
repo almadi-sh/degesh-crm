@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -67,9 +68,15 @@ export default function SupplierCards() {
   return (
     <MainLayout>
       <div className="space-y-4">
-        <div>
-          <h1 className="text-3xl font-bold font-display">Товары</h1>
-          <p className="text-muted-foreground mt-1">Сначала выбираем поставщика, затем добавляем товар и этапы закупки.</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold font-display">Поставщики</h1>
+            <p className="text-muted-foreground mt-1">Карточки поставщиков и товары закупа в одном разделе.</p>
+          </div>
+          <div className="flex gap-2">
+            <Button asChild variant="outline"><Link to="/suppliers">Добавить поставщика</Link></Button>
+            <Button asChild variant="outline"><Link to="/suppliers?tab=others">Добавить прочее</Link></Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
