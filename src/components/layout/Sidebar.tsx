@@ -9,6 +9,7 @@ import {
   PackagePlus,
   Archive,
   BarChart3,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import { useState } from "react";
 
 const navigation = [
+  { name: "Заявка", href: "/requests", icon: ClipboardList },
   { name: "Главная", href: "/", icon: LayoutDashboard },
   { name: "Покупатели", href: "/clients", icon: Users },
   { name: "Клиенты", href: "/client-cards", icon: Users },
