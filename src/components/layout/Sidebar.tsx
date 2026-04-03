@@ -54,12 +54,44 @@ interface SidebarContentProps {
   onNavigate?: () => void;
 }
 
+const SIDEBAR_GROUPS_KEY = "sidebarOpenGroups";
+
+const getStoredGroupsState = (): Record<string, boolean> => {
+  if (typeof window === "undefined") {
+    return {};
+  }
+  try {
+    const raw = window.localStorage.getItem(SIDEBAR_GROUPS_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Record<string, boolean>;
+    return parsed ?? {};
+  } catch {
+    return {};
+  }
+};
+
+const setStoredGroupsState = (value: Record<string, boolean>) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(SIDEBAR_GROUPS_KEY, JSON.stringify(value));
+  } catch {
+    // ignore storage errors
+  }
+};
+
 function SidebarContent({ onNavigate }: SidebarContentProps) {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    "Контрагенты": true,
-    "Инвентарь": true,
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const storedState = getStoredGroupsState();
+    return {
+      "Контрагенты": storedState["Контрагенты"] ?? true,
+      "Инвентарь": storedState["Инвентарь"] ?? true,
+    };
   });
 
   const normalizedPath = useMemo(() => location.pathname + location.search, [location.pathname, location.search]);
@@ -100,7 +132,13 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
             <div key={item.name} className="space-y-1">
               <button
                 type="button"
-                onClick={() => setOpenGroups((prev) => ({ ...prev, [item.name]: !isOpen }))}
+                onClick={() =>
+                  setOpenGroups((prev) => {
+                    const nextState = { ...prev, [item.name]: !isOpen };
+                    setStoredGroupsState(nextState);
+                    return nextState;
+                  })
+                }
                 className={cn("nav-link w-full justify-between", hasActiveChild && "nav-link-active")}
               >
                 <span className="flex items-center gap-3">
