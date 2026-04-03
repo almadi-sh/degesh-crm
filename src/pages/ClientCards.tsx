@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { useClients } from "@/hooks/useClients";
+import { useClients, useCreateClient, ClientInsert } from "@/hooks/useClients";
 import {
   useContracts,
   useCreateContract,
@@ -31,9 +30,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Pin, Trash2 } from "lucide-react";
+import { Pin, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ContractDocumentEditor } from "@/components/contracts/ContractDocumentEditor";
+import { DEMO_EMPLOYEES } from "@/lib/employees";
+import { KZ_CITIES } from "@/lib/referenceData";
 
 interface EditableItem {
   product_id: number;
@@ -78,12 +79,33 @@ const statusLabels: Record<"Draft" | "Confirmed" | "Sent", string> = {
   Sent: "Отправлен",
 };
 
+const EMPTY_CLIENT: ClientInsert = {
+  name: "",
+  legal_form: null,
+  contract_signer_full_name: null,
+  contract_signer_role: null,
+  contract_signer_basis: null,
+  bin_iin: null,
+  city: null,
+  legal_address: null,
+  address: null,
+  tax_regime: null,
+  created_by_user: null,
+  initial_contact_user: null,
+};
+
 export default function ClientCards() {
   const { data: clients = [], isLoading } = useClients();
   const { data: products = [] } = useProducts();
   const { user } = useAuth();
+  const createClient = useCreateClient();
   const [search, setSearch] = useState("");
   const [activeClientId, setActiveClientId] = useState<number | null>(null);
+  const [isCreateClientDialogOpen, setIsCreateClientDialogOpen] = useState(false);
+  const [newClientData, setNewClientData] = useState<ClientInsert>(EMPTY_CLIENT);
+
+  const managers = useMemo(() => DEMO_EMPLOYEES.filter((employee) => employee.role === "manager"), []);
+  const sales = useMemo(() => DEMO_EMPLOYEES.filter((employee) => employee.role === "sales"), []);
 
   const filtered = useMemo(
     () => clients.filter((item) => [item.name, item.bin_iin, item.city].filter(Boolean).some((v) => v?.toLowerCase().includes(search.toLowerCase()))),
@@ -466,6 +488,13 @@ export default function ClientCards() {
     }));
   };
 
+  const handleCreateClient = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await createClient.mutateAsync(newClientData);
+    setIsCreateClientDialogOpen(false);
+    setNewClientData(EMPTY_CLIENT);
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -474,9 +503,90 @@ export default function ClientCards() {
             <h1 className="text-3xl font-bold text-foreground font-display">Покупатели</h1>
             <p className="text-muted-foreground mt-1">Раздел объединяет список покупателей и карточки клиентов с договорами.</p>
           </div>
-          <Button asChild>
-            <Link to="/clients">Добавить покупателя</Link>
-          </Button>
+          <Dialog open={isCreateClientDialogOpen} onOpenChange={setIsCreateClientDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Добавить покупателя
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle className="font-display text-xl">Добавить нового покупателя</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreateClient} className="mt-4 max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Наименование клиента *</Label>
+                    <Input value={newClientData.name} onChange={(e) => setNewClientData({ ...newClientData, name: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Форма лица</Label>
+                    <Select value={newClientData.legal_form ?? ""} onValueChange={(value) => setNewClientData({ ...newClientData, legal_form: value })}>
+                      <SelectTrigger><SelectValue placeholder="КХ / ТОО / ИП / ФХ" /></SelectTrigger>
+                      <SelectContent>{["КХ", "ТОО", "ИП", "ФХ"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Лицо на кого оформляется договор (ФИО)</Label>
+                    <Input value={newClientData.contract_signer_full_name ?? ""} onChange={(e) => setNewClientData({ ...newClientData, contract_signer_full_name: e.target.value || null })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Контактное лицо 1 — роль (опционально)</Label>
+                    <Input value={newClientData.contract_signer_role ?? ""} onChange={(e) => setNewClientData({ ...newClientData, contract_signer_role: e.target.value || null })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Контактное лицо 2 — роль (опционально)</Label>
+                    <Input value={newClientData.contract_signer_basis ?? ""} onChange={(e) => setNewClientData({ ...newClientData, contract_signer_basis: e.target.value || null })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>БИН/ИИН (12 цифр)</Label>
+                    <Input value={newClientData.bin_iin ?? ""} maxLength={12} onChange={(e) => setNewClientData({ ...newClientData, bin_iin: e.target.value.replace(/\D/g, "") || null })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Налоговый режим</Label>
+                    <Select value={newClientData.tax_regime ?? ""} onValueChange={(value) => setNewClientData({ ...newClientData, tax_regime: value })}>
+                      <SelectTrigger><SelectValue placeholder="Общеустановленный / Упрощенный" /></SelectTrigger>
+                      <SelectContent>{["Общеустановленный", "Упрощенный"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Город</Label>
+                    <Select value={newClientData.city ?? ""} onValueChange={(value) => setNewClientData({ ...newClientData, city: value })}>
+                      <SelectTrigger><SelectValue placeholder="Выберите город" /></SelectTrigger>
+                      <SelectContent>{KZ_CITIES.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Юр. адрес</Label>
+                    <Input value={newClientData.legal_address ?? ""} onChange={(e) => setNewClientData({ ...newClientData, legal_address: e.target.value || null, address: e.target.value || null })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Кто создал в системе</Label>
+                    <Select value={newClientData.created_by_user ?? ""} onValueChange={(value) => setNewClientData({ ...newClientData, created_by_user: value })}>
+                      <SelectTrigger><SelectValue placeholder="Менеджер" /></SelectTrigger>
+                      <SelectContent>{managers.map((item) => <SelectItem key={item.id} value={item.name}>{item.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Кто скоммуницировал изначально</Label>
+                    <Select value={newClientData.initial_contact_user ?? ""} onValueChange={(value) => setNewClientData({ ...newClientData, initial_contact_user: value })}>
+                      <SelectTrigger><SelectValue placeholder="Продажник" /></SelectTrigger>
+                      <SelectContent>{sales.map((item) => <SelectItem key={item.id} value={item.name}>{item.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
+                  <Button type="button" variant="outline" onClick={() => setIsCreateClientDialogOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button type="submit" disabled={createClient.isPending}>
+                    {createClient.isPending ? "Создание..." : "Создать покупателя"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px,1fr]">
@@ -526,8 +636,8 @@ export default function ClientCards() {
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div><p className="text-xs text-muted-foreground">Подписант</p><p className="font-medium">{activeClient.contract_signer_full_name ?? "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Роль подписанта</p><p className="font-medium">{activeClient.contract_signer_role ?? "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Основание</p><p className="font-medium">{activeClient.contract_signer_basis ?? "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Контактное лицо 1 — роль</p><p className="font-medium">{activeClient.contract_signer_role ?? "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Контактное лицо 2 — роль</p><p className="font-medium">{activeClient.contract_signer_basis ?? "—"}</p></div>
                     <div><p className="text-xs text-muted-foreground">Кто создал</p><p className="font-medium">{activeClient.created_by_user ?? "—"}</p></div>
                     <div><p className="text-xs text-muted-foreground">Изначально скоммуницировал</p><p className="font-medium">{activeClient.initial_contact_user ?? "—"}</p></div>
                   </div>
