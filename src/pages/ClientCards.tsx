@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useClients, useCreateClient, ClientInsert } from "@/hooks/useClients";
 import {
@@ -35,6 +36,7 @@ import { toast } from "sonner";
 import { ContractDocumentEditor } from "@/components/contracts/ContractDocumentEditor";
 import { DEMO_EMPLOYEES } from "@/lib/employees";
 import { KZ_CITIES } from "@/lib/referenceData";
+import { setClientCreationMeta } from "@/lib/counterpartyMeta";
 
 interface EditableItem {
   product_id: number;
@@ -99,6 +101,7 @@ export default function ClientCards() {
   const { data: products = [] } = useProducts();
   const { user } = useAuth();
   const createClient = useCreateClient();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [activeClientId, setActiveClientId] = useState<number | null>(null);
   const [isCreateClientDialogOpen, setIsCreateClientDialogOpen] = useState(false);
@@ -111,6 +114,14 @@ export default function ClientCards() {
     () => clients.filter((item) => [item.name, item.bin_iin, item.city].filter(Boolean).some((v) => v?.toLowerCase().includes(search.toLowerCase()))),
     [clients, search],
   );
+
+
+  useEffect(() => {
+    const clientId = Number(searchParams.get("clientId"));
+    if (!Number.isNaN(clientId) && clientId > 0) {
+      setActiveClientId(clientId);
+    }
+  }, [searchParams]);
 
   const activeClient = useMemo(() => {
     if (activeClientId) {
@@ -490,7 +501,12 @@ export default function ClientCards() {
 
   const handleCreateClient = async (event: React.FormEvent) => {
     event.preventDefault();
-    await createClient.mutateAsync(newClientData);
+    const creatorName = user?.name ?? newClientData.created_by_user ?? "Неизвестный аккаунт";
+    const created = await createClient.mutateAsync({
+      ...newClientData,
+      created_by_user: creatorName,
+    });
+    setClientCreationMeta(created.id, creatorName);
     setIsCreateClientDialogOpen(false);
     setNewClientData(EMPTY_CLIENT);
   };

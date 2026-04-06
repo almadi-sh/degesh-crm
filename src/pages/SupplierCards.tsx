@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,10 +25,18 @@ const WAREHOUSES = ["Алматы", "Астана", "Шымкент", "Кост�
 
 export default function SupplierCards() {
   const { data: suppliers = [] } = useSuppliers();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const filteredSuppliers = useMemo(() => suppliers.filter((item) => item.name.toLowerCase().includes(search.toLowerCase())), [suppliers, search]);
   const [activeSupplierId, setActiveSupplierId] = useState<number | null>(null);
   const activeSupplier = useMemo(() => filteredSuppliers.find((item) => item.id === activeSupplierId) ?? filteredSuppliers[0], [filteredSuppliers, activeSupplierId]);
+
+  useEffect(() => {
+    const supplierId = Number(searchParams.get("supplierId"));
+    if (!Number.isNaN(supplierId) && supplierId > 0) {
+      setActiveSupplierId(supplierId);
+    }
+  }, [searchParams]);
   const { data: items = [] } = useSupplierItems(activeSupplier?.id);
   const createItem = useCreateSupplierItem();
   const deleteItem = useDeleteSupplierItem();

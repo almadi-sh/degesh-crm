@@ -70,3 +70,20 @@ export function useDeleteSupplier() {
     onError: (error) => toast.error("Не удалось удалить поставщика: " + error.message),
   });
 }
+
+
+export function useUpdateSupplier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...payload }: { id: number } & SupplierUpdate) =>
+      apiFetch<Supplier>(`/api/v1/suppliers/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      toast.success("Поставщик обновлен");
+    },
+    onError: (error) => toast.error("Не удалось обновить поставщика: " + error.message),
+  });
+}
