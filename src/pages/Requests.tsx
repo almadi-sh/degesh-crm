@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,11 +14,19 @@ interface FlowStep {
   href: string;
 }
 
+interface RequestItem {
+  id: string;
+  title: string;
+  checks: Record<string, boolean>;
+}
+
+const REQUESTS_STORAGE_KEY = "requestsListState";
+
 const FLOW_STEPS: FlowStep[] = [
   {
     id: "supplierSearch",
     title: "Поиск контрагента",
-    description: "Создайте карточку Покупателя/Поставщика/Прочее и заполните обязательные поля.",
+    description: "Создайте карточку Покупателя/Поставщика/Прочие и заполните обязательные поля.",
     href: "/suppliers",
   },
   {
@@ -35,15 +43,41 @@ const FLOW_STEPS: FlowStep[] = [
   },
 ];
 
+const getStoredRequests = (): RequestItem[] => {
+  if (typeof window === "undefined") {
+    return [{ id: "request-1", title: "Закупить семена рапса", checks: {} }];
+  }
+  try {
+    const raw = localStorage.getItem(REQUESTS_STORAGE_KEY);
+    if (!raw) return [{ id: "request-1", title: "Закупить семена рапса", checks: {} }];
+    const parsed = JSON.parse(raw) as RequestItem[];
+    return parsed.length > 0 ? parsed : [{ id: "request-1", title: "Закупить семена рапса", checks: {} }];
+  } catch {
+    return [{ id: "request-1", title: "Закупить семена рапса", checks: {} }];
+  }
+};
+
+const setStoredRequests = (requests: RequestItem[]) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(REQUESTS_STORAGE_KEY, JSON.stringify(requests));
+};
+
 export default function Requests() {
-  const [requests, setRequests] = useState<Array<{ id: string; title: string; checks: Record<string, boolean> }>>([
-    { id: "request-1", title: "Закупить семена рапса", checks: {} },
-  ]);
-  const [activeRequestId, setActiveRequestId] = useState("request-1");
+  const navigate = useNavigate();
+  const { requestId } = useParams<{ requestId?: string }>();
+  const [requests, setRequests] = useState<RequestItem[]>(() => getStoredRequests());
+
+  const updateRequests = (updater: (current: RequestItem[]) => RequestItem[]) => {
+    setRequests((current) => {
+      const next = updater(current);
+      setStoredRequests(next);
+      return next;
+    });
+  };
 
   const activeRequest = useMemo(
-    () => requests.find((request) => request.id === activeRequestId) ?? requests[0],
-    [activeRequestId, requests],
+    () => requests.find((request) => request.id === requestId) ?? null,
+    [requestId, requests],
   );
 
   const steps = useMemo(
@@ -62,7 +96,7 @@ export default function Requests() {
 
   const toggleStep = (id: string, isUnlocked: boolean) => {
     if (!isUnlocked || !activeRequest) return;
-    setRequests((prev) => prev.map((request) => (
+    updateRequests((prev) => prev.map((request) => (
       request.id === activeRequest.id
         ? { ...request, checks: { ...request.checks, [id]: !request.checks[id] } }
         : request
@@ -76,13 +110,13 @@ export default function Requests() {
       title: `Новая заявка #${nextRequestNumber}`,
       checks: {},
     };
-    setRequests((prev) => [...prev, nextRequest]);
-    setActiveRequestId(nextRequest.id);
+    updateRequests((prev) => [...prev, nextRequest]);
+    navigate(`/requests/${nextRequest.id}`);
   };
 
   const renameRequest = (title: string) => {
     if (!activeRequest) return;
-    setRequests((prev) => prev.map((request) => (request.id === activeRequest.id ? { ...request, title } : request)));
+    updateRequests((prev) => prev.map((request) => (request.id === activeRequest.id ? { ...request, title } : request)));
   };
 
   return (
@@ -96,33 +130,41 @@ export default function Requests() {
           <Button type="button" onClick={createRequest}>Создать заявку</Button>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px,1fr]">
+        {!requestId ? (
           <Card>
             <CardHeader>
-              <CardTitle>Лист заявок</CardTitle>
+              <CardTitle>Список заявок</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {requests.map((request) => (
                 <button
                   key={request.id}
                   type="button"
-                  onClick={() => setActiveRequestId(request.id)}
-                  className={`w-full rounded-lg border px-3 py-2 text-left ${request.id === activeRequest?.id ? "border-primary bg-primary/5" : "border-border"}`}
+                  onClick={() => navigate(`/requests/${request.id}`)}
+                  className="w-full rounded-lg border border-border px-3 py-2 text-left transition hover:bg-muted"
                 >
                   <p className="font-medium">{request.title}</p>
                 </button>
               ))}
             </CardContent>
           </Card>
-
+        ) : !activeRequest ? (
+          <Card>
+            <CardContent className="p-6 space-y-3">
+              <p className="text-muted-foreground">Заявка не найдена.</p>
+              <Button asChild variant="outline"><Link to="/requests">Вернуться к списку</Link></Button>
+            </CardContent>
+          </Card>
+        ) : (
           <div className="space-y-6">
+            <Button asChild variant="outline"><Link to="/requests">← К списку заявок</Link></Button>
             <Card>
               <CardHeader>
                 <CardTitle>Текущая заявка</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Input
-                  value={activeRequest?.title ?? ""}
+                  value={activeRequest.title}
                   onChange={(event) => renameRequest(event.target.value)}
                   placeholder="Введите название заявки"
                 />
@@ -156,7 +198,7 @@ export default function Requests() {
               </CardContent>
             </Card>
           </div>
-        </div>
+        )}
       </div>
     </MainLayout>
   );
