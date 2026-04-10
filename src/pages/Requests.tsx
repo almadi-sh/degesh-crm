@@ -4,7 +4,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { BadgeCheck, CircleAlert } from "lucide-react";
+import { BadgeCheck, CircleAlert, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface FlowStep {
@@ -119,6 +119,14 @@ export default function Requests() {
     updateRequests((prev) => prev.map((request) => (request.id === activeRequest.id ? { ...request, title } : request)));
   };
 
+  const removeRequest = (id: string) => {
+    const next = requests.filter((request) => request.id !== id);
+    updateRequests(() => next.length > 0 ? next : [{ id: "request-1", title: "Закупить семена рапса", checks: {} }]);
+    if (requestId === id) {
+      navigate("/requests");
+    }
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -137,14 +145,18 @@ export default function Requests() {
             </CardHeader>
             <CardContent className="space-y-2">
               {requests.map((request) => (
-                <button
-                  key={request.id}
-                  type="button"
-                  onClick={() => navigate(`/requests/${request.id}`)}
-                  className="w-full rounded-lg border border-border px-3 py-2 text-left transition hover:bg-muted"
-                >
-                  <p className="font-medium">{request.title}</p>
-                </button>
+                <div key={request.id} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/requests/${request.id}`)}
+                    className="w-full rounded-lg border border-border px-3 py-2 text-left transition hover:bg-muted"
+                  >
+                    <p className="font-medium">{request.title}</p>
+                  </button>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removeRequest(request.id)} aria-label="Удалить заявку">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               ))}
             </CardContent>
           </Card>
@@ -160,7 +172,13 @@ export default function Requests() {
             <Button asChild variant="outline"><Link to="/requests">← К списку заявок</Link></Button>
             <Card>
               <CardHeader>
-                <CardTitle>Текущая заявка</CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle>Текущая заявка</CardTitle>
+                  <Button type="button" variant="destructive" size="sm" onClick={() => removeRequest(activeRequest.id)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Удалить заявку
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Input
