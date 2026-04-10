@@ -76,8 +76,9 @@ const setSupplierKind = (id: number, kind: SupplierKind) => {
 export default function Suppliers() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") === "others" ? "others" : "buyers";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab = tabParam === "suppliers" || tabParam === "others" || tabParam === "buyers" ? tabParam : "buyers";
 
   const { data: buyers = [] } = useClients();
   const { data: suppliers = [], isLoading } = useSuppliers();
@@ -272,7 +273,17 @@ export default function Suppliers() {
           <Input className="pl-10" placeholder="Поиск по контрагентам" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
-        <Tabs defaultValue={defaultTab} className="space-y-4">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => {
+            if (value === "buyers") {
+              setSearchParams({});
+              return;
+            }
+            setSearchParams({ tab: value });
+          }}
+          className="space-y-4"
+        >
           <TabsList>
             <TabsTrigger value="buyers">Покупатели</TabsTrigger>
             <TabsTrigger value="suppliers">Поставщики</TabsTrigger>
