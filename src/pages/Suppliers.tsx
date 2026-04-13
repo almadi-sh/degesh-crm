@@ -1,14 +1,13 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Trash2, Pencil } from "lucide-react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { KZ_CITIES } from "@/lib/referenceData";
 import { Client, ClientInsert, useClients, useCreateClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
@@ -17,6 +16,11 @@ import { formatCreatedAt, getClientCreationMeta, getSupplierCreationMeta, setCli
 
 const SUPPLIER_KIND_STORAGE_KEY = "supplierKindMap";
 type SupplierKind = "supplier" | "other";
+export type CounterpartyPageMode = "buyers" | "suppliers" | "others";
+
+interface SuppliersPageProps {
+  mode: CounterpartyPageMode;
+}
 
 interface SupplierFormState {
   name: string;
@@ -73,13 +77,27 @@ const setSupplierKind = (id: number, kind: SupplierKind) => {
   window.localStorage.setItem(SUPPLIER_KIND_STORAGE_KEY, JSON.stringify(map));
 };
 
-export default function Suppliers() {
+const PAGE_CONTENT: Record<CounterpartyPageMode, { title: string; description: string; searchPlaceholder: string }> = {
+  buyers: {
+    title: "Покупатели",
+    description: "Список покупателей и переход в карточку.",
+    searchPlaceholder: "Поиск по покупателям",
+  },
+  suppliers: {
+    title: "Поставщики",
+    description: "Список поставщиков и переход в карточку.",
+    searchPlaceholder: "Поиск по поставщикам",
+  },
+  others: {
+    title: "Прочие",
+    description: "Список прочих контрагентов и переход в карточку.",
+    searchPlaceholder: "Поиск по прочим контрагентам",
+  },
+};
+
+export default function Suppliers({ mode }: SuppliersPageProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get("tab");
-  const activeTab = tabParam === "suppliers" || tabParam === "others" || tabParam === "buyers" ? tabParam : "buyers";
-
   const { data: buyers = [] } = useClients();
   const { data: suppliers = [], isLoading } = useSuppliers();
 
@@ -260,37 +278,23 @@ export default function Suppliers() {
     return `${createdBy ?? "—"} • создан ${formatCreatedAt(createdAt)}`;
   };
 
+  const content = PAGE_CONTENT[mode];
+
   return (
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold font-display">Контрагенты</h1>
-          <p className="mt-1 text-muted-foreground">Покупатели / Поставщики / Прочие контрагенты — список и переход в карточку.</p>
+          <h1 className="text-3xl font-bold font-display">{content.title}</h1>
+          <p className="mt-1 text-muted-foreground">{content.description}</p>
         </div>
 
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-10" placeholder="Поиск по контрагентам" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="pl-10" placeholder={content.searchPlaceholder} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
-        <Tabs
-          value={activeTab}
-          onValueChange={(value) => {
-            if (value === "buyers") {
-              setSearchParams({});
-              return;
-            }
-            setSearchParams({ tab: value });
-          }}
-          className="space-y-4"
-        >
-          <TabsList>
-            <TabsTrigger value="buyers">Покупатели</TabsTrigger>
-            <TabsTrigger value="suppliers">Поставщики</TabsTrigger>
-            <TabsTrigger value="others">Прочие контрагенты</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="buyers" className="space-y-4">
+        {mode === "buyers" && (
+          <>
             <Dialog open={openBuyerDialog} onOpenChange={setOpenBuyerDialog}>
               <DialogTrigger asChild><Button className="gap-2"><Plus className="h-4 w-4" />{editingBuyer ? "Редактировать покупателя" : "Добавить покупателя"}</Button></DialogTrigger>
               <DialogContent className="max-w-2xl">
@@ -337,9 +341,11 @@ export default function Suppliers() {
                 </TableBody>
               </Table>
             </div>
-          </TabsContent>
+          </>
+        )}
 
-          <TabsContent value="suppliers" className="space-y-4">
+        {mode === "suppliers" && (
+          <>
             <Dialog open={openSupplierDialog} onOpenChange={setOpenSupplierDialog}>
               <DialogTrigger asChild><Button className="gap-2"><Plus className="h-4 w-4" />{editingSupplier ? "Редактировать поставщика" : "Добавить поставщика"}</Button></DialogTrigger>
               <DialogContent className="max-w-2xl">
@@ -405,9 +411,11 @@ export default function Suppliers() {
                 </Table>
               )}
             </div>
-          </TabsContent>
+          </>
+        )}
 
-          <TabsContent value="others" className="space-y-4">
+        {mode === "others" && (
+          <>
             <Dialog open={openOtherDialog} onOpenChange={setOpenOtherDialog}>
               <DialogTrigger asChild><Button className="gap-2"><Plus className="h-4 w-4" />{editingSupplier ? "Редактировать контрагента" : "Добавить контрагента"}</Button></DialogTrigger>
               <DialogContent className="max-w-2xl">
@@ -426,7 +434,7 @@ export default function Suppliers() {
                   {filteredOthers.map((item) => {
                     const meta = getSupplierCreationMeta(item.id);
                     return (
-                      <TableRow key={item.id} className="cursor-pointer" onClick={() => navigate(`/supplier-cards?supplierId=${item.id}`)}>
+                      <TableRow key={item.id} className="cursor-pointer" onClick={() => navigate(`/supplier-cards?supplierId=${item.id}&tab=others`)}>
                         <TableCell>{item.name}</TableCell>
                         <TableCell>{item.contact_person ?? "—"}</TableCell>
                         <TableCell>{item.city ?? "—"}</TableCell>
@@ -443,8 +451,8 @@ export default function Suppliers() {
                 </TableBody>
               </Table>
             </div>
-          </TabsContent>
-        </Tabs>
+          </>
+        )}
       </div>
     </MainLayout>
   );

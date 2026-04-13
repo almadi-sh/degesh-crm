@@ -32,9 +32,9 @@ const navigation: NavItem[] = [
     name: "Контрагенты",
     icon: Users,
     children: [
-      { name: "Покупатели", href: "/suppliers?tab=buyers" },
-      { name: "Поставщики", href: "/suppliers?tab=suppliers" },
-      { name: "Прочие", href: "/suppliers?tab=others" },
+      { name: "Покупатели", href: "/counterparties/buyers" },
+      { name: "Поставщики", href: "/counterparties/suppliers" },
+      { name: "Прочие", href: "/counterparties/others" },
     ],
   },
   {
