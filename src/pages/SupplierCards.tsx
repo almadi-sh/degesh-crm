@@ -129,7 +129,7 @@ export default function SupplierCards() {
           </div>
           <div className="flex gap-2">
             <Button asChild variant="outline">
-              <Link to="/suppliers">Управление контрагентами</Link>
+              <Link to={tab === "others" ? "/counterparties/others" : "/counterparties/suppliers"}>Управление контрагентами</Link>
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
