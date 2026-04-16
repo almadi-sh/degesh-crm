@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { SupplierItemInsert, SupplierItemType, useCreateSupplierItem, useDeleteSupplierItem, useSupplierItems } from "@/hooks/useSupplierItems";
 import { getSupplierItemWorkflow, setSupplierItemWorkflow } from "@/lib/supplierWorkflow";
@@ -189,31 +190,38 @@ export default function SupplierOtherCards() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[290px_minmax(0,1fr)]">
-          <div className="rounded-xl border bg-card p-4 space-y-3">
-            <h2 className="text-3xl font-bold font-display text-[32px] leading-none">Список клиентов</h2>
-            <Input placeholder="Поиск по клиенту..." value={search} onChange={(e) => setSearch(e.target.value)} />
-            <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px,1fr]">
+          <Card>
+            <CardHeader>
+              <CardTitle>Список контрагентов</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Input placeholder="Поиск по контрагенту..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              <div className="max-h-[65vh] space-y-2 overflow-y-auto pr-1">
               {filteredSuppliers.map((supplier) => (
                 <button
                   key={supplier.id}
                   type="button"
                   onClick={() => setActiveSupplierId(supplier.id)}
-                  className={`w-full rounded-lg border px-3 py-2 text-left transition ${activeSupplier?.id === supplier.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted"}`}
+                  className={`w-full rounded-lg border px-3 py-2 text-left ${activeSupplier?.id === supplier.id ? "border-primary bg-primary/5" : "border-border"}`}
                 >
                   <p className="font-medium">{supplier.name}</p>
-                  <p className="text-xs text-muted-foreground">{supplier.bin_iin ?? "без BIN/IIN"}</p>
+                  <p className="text-xs text-muted-foreground">{supplier.bin_iin ?? "Без BIN/IIN"}</p>
                 </button>
               ))}
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="rounded-xl border bg-card p-4 space-y-4">
-            <h2 className="text-3xl font-bold font-display text-[32px] leading-none">Карточка клиента</h2>
+          <Card>
+            <CardHeader>
+              <CardTitle>Карточка контрагента</CardTitle>
+            </CardHeader>
+            <CardContent>
             {!activeSupplier ? (
-              <p className="text-muted-foreground">Контрагенты не найдены.</p>
+              <p className="text-sm text-muted-foreground">Контрагент не выбран.</p>
             ) : (
-              <>
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div className="space-y-4">
                     <div>
@@ -304,9 +312,10 @@ export default function SupplierOtherCards() {
                     </Table>
                   </TabsContent>
                 </Tabs>
-              </>
+              </div>
             )}
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </MainLayout>
