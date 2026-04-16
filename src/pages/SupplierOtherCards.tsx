@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import { useSuppliers } from "@/hooks/useSuppliers";
 import { SupplierItemInsert, SupplierItemType, useCreateSupplierItem, useDeleteSupplierItem, useSupplierItems } from "@/hooks/useSupplierItems";
 import { getSupplierItemWorkflow, setSupplierItemWorkflow } from "@/lib/supplierWorkflow";
 import { formatCreatedAt, getSupplierCreationMeta } from "@/lib/counterpartyMeta";
+import { useCreateSupplier } from "@/hooks/useSuppliers";
+import { useAuth } from "@/hooks/useAuth";
 
 const SUPPLIER_KIND_STORAGE_KEY = "supplierKindMap";
 type SupplierKind = "supplier" | "other";
@@ -38,6 +40,7 @@ const getSupplierKindMap = (): Record<string, SupplierKind> => {
 };
 
 export default function SupplierOtherCards() {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const pageTitle = "Прочие";
   const pageDescription = "Раздел объединяет список прочих контрагентов и карточки с товарами.";
@@ -46,6 +49,19 @@ export default function SupplierOtherCards() {
   const [search, setSearch] = useState("");
   const [activeSupplierId, setActiveSupplierId] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
+  const [openOtherDialog, setOpenOtherDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState("goods");
+  const [supplierForm, setSupplierForm] = useState({
+    name: "",
+    supplier_scope: "domestic" as "international" | "domestic",
+    bin_iin: "",
+    country: "",
+    city: "",
+    email: "",
+    contact_person_1: "",
+    contact_person_2: "",
+    phone: "",
+  });
   const [formData, setFormData] = useState<Omit<SupplierItemInsert, "supplier_id">>({
     name: "",
     quantity_available: 0,
@@ -60,6 +76,7 @@ export default function SupplierOtherCards() {
   const [warehouse, setWarehouse] = useState("Алматы");
 
   const createItem = useCreateSupplierItem();
+  const createSupplier = useCreateSupplier();
   const deleteItem = useDeleteSupplierItem();
   const supplierKinds = getSupplierKindMap();
 
@@ -104,6 +121,54 @@ export default function SupplierOtherCards() {
 
   const { data: items = [] } = useSupplierItems(activeSupplier?.id ?? undefined);
 
+  const createOtherSupplier = async () => {
+    const isInternational = supplierForm.supplier_scope === "international";
+    if (!supplierForm.name.trim()) return;
+    if (!supplierForm.contact_person_1.trim()) return;
+    if (!supplierForm.city.trim()) return;
+    if (!isInternational && supplierForm.bin_iin && supplierForm.bin_iin.length !== 12) {
+      alert("БИН/ИИН должен содержать 12 цифр");
+      return;
+    }
+    if (isInternational && !supplierForm.country.trim()) {
+      alert("Для международного контрагента страна обязательна");
+      return;
+    }
+
+    const creator = user?.name ?? "Неизвестный аккаунт";
+    const created = await createSupplier.mutateAsync({
+      name: supplierForm.name,
+      legal_form: isInternational ? "Международный" : "Внутренний",
+      bin_iin: supplierForm.bin_iin || null,
+      city: supplierForm.city,
+      legal_address: isInternational ? `${supplierForm.country}, ${supplierForm.city}` : supplierForm.city,
+      email: supplierForm.email || null,
+      contact_person: supplierForm.contact_person_2
+        ? `${supplierForm.contact_person_1}; ${supplierForm.contact_person_2}`
+        : supplierForm.contact_person_1,
+      phone: supplierForm.phone || null,
+      notes: isInternational ? `Страна: ${supplierForm.country}` : "Прочий поставщик",
+      created_by_user: creator,
+    });
+
+    const map = getSupplierKindMap();
+    map[String(created.id)] = "other";
+    window.localStorage.setItem(SUPPLIER_KIND_STORAGE_KEY, JSON.stringify(map));
+    setOpenOtherDialog(false);
+    setSupplierForm({
+      name: "",
+      supplier_scope: "domestic",
+      bin_iin: "",
+      country: "",
+      city: "",
+      email: "",
+      contact_person_1: "",
+      contact_person_2: "",
+      phone: "",
+    });
+    setActiveSupplierId(created.id);
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!activeSupplier) return;
@@ -134,57 +199,33 @@ export default function SupplierOtherCards() {
             <p className="text-muted-foreground mt-1">{pageDescription}</p>
           </div>
           <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link to="/counterparties/others">Добавить контрагента</Link>
-            </Button>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button disabled={!activeSupplier}>Добавить товар</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Новый товар контрагента</DialogTitle></DialogHeader>
-                <form onSubmit={submit} className="space-y-3">
-                  <div className="space-y-2"><Label>Наименование</Label><Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2"><Label>Количество</Label><Input type="number" min="0" step="0.01" value={formData.quantity_available} onChange={(e) => setFormData({ ...formData, quantity_available: Number(e.target.value) })} /></div>
-                    <div className="space-y-2"><Label>Цена закупа</Label><Input type="number" min="0" step="0.01" value={formData.purchase_price} onChange={(e) => setFormData({ ...formData, purchase_price: Number(e.target.value) })} /></div>
-                  </div>
+            <Dialog open={openOtherDialog} onOpenChange={setOpenOtherDialog}>
+              <DialogTrigger asChild><Button variant="outline">Добавить контрагента</Button></DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader><DialogTitle>Прочие поставщики</DialogTitle></DialogHeader>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2"><Label>Наименование *</Label><Input value={supplierForm.name} onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })} /></div>
                   <div className="space-y-2">
-                    <Label>Тип товара</Label>
-                    <Select value={formData.item_type} onValueChange={(value) => setFormData({ ...formData, item_type: value as SupplierItemType })}>
+                    <Label>Международный/Внутренний</Label>
+                    <Select value={supplierForm.supplier_scope} onValueChange={(value) => setSupplierForm({ ...supplierForm, supplier_scope: value as "international" | "domestic" })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pesticide">СЗР</SelectItem>
-                        <SelectItem value="fertilizer">Удобрения</SelectItem>
-                        <SelectItem value="seeds">Семена</SelectItem>
-                        <SelectItem value="service">Услуги</SelectItem>
+                        <SelectItem value="international">Международный</SelectItem>
+                        <SelectItem value="domestic">Внутренний</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Склад прибытия</Label>
-                    <Select value={warehouse} onValueChange={setWarehouse}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{WAREHOUSES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2 rounded-md border p-3">
-                    <p className="text-sm font-medium">Чекпоинты</p>
-                    <div className="flex items-center gap-2"><Checkbox checked={purchaseContractCreated} onCheckedChange={(v) => setPurchaseContractCreated(Boolean(v))} /><Label>Создать договор покупки</Label></div>
-                    <div className="flex items-center gap-2"><Checkbox checked={shippingDocsChecked} onCheckedChange={(v) => setShippingDocsChecked(Boolean(v))} /><Label>Проверка документов отгрузки</Label></div>
-                    <div className="space-y-2">
-                      <Label>Готово к растаможке</Label>
-                      <Select value={customsStatus} onValueChange={(value) => setCustomsStatus(value as "not_ready" | "ready")}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="not_ready">Не готово</SelectItem>
-                          <SelectItem value="ready">Готово</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <Button className="w-full" type="submit">Сохранить</Button>
-                </form>
+                  <div className="space-y-2"><Label>БИН/ИИН (опционально)</Label><Input value={supplierForm.bin_iin} maxLength={12} onChange={(e) => setSupplierForm({ ...supplierForm, bin_iin: e.target.value.replace(/\D/g, "") })} /></div>
+                  {supplierForm.supplier_scope === "international" && (
+                    <div className="space-y-2"><Label>Страна *</Label><Input value={supplierForm.country} onChange={(e) => setSupplierForm({ ...supplierForm, country: e.target.value })} /></div>
+                  )}
+                  <div className="space-y-2"><Label>Город *</Label><Input value={supplierForm.city} onChange={(e) => setSupplierForm({ ...supplierForm, city: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Контактное лицо 1 *</Label><Input value={supplierForm.contact_person_1} onChange={(e) => setSupplierForm({ ...supplierForm, contact_person_1: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Контактное лицо 2</Label><Input value={supplierForm.contact_person_2} onChange={(e) => setSupplierForm({ ...supplierForm, contact_person_2: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Email</Label><Input value={supplierForm.email} onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Телефон</Label><Input value={supplierForm.phone} onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })} /></div>
+                </div>
+                <Button className="mt-4 w-full" onClick={createOtherSupplier}>Создать контрагента</Button>
               </DialogContent>
             </Dialog>
           </div>
@@ -264,12 +305,64 @@ export default function SupplierOtherCards() {
                   </div>
                 </div>
 
-                <Tabs defaultValue="goods" className="space-y-4">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                   <TabsList>
                     <TabsTrigger value="goods">Товары</TabsTrigger>
                     <TabsTrigger value="contracts">Сделки / договоры</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="goods">
+                  <TabsContent value="goods" className="space-y-3">
+                    <div className="flex justify-end">
+                      <Dialog open={open} onOpenChange={setOpen}>
+                        <DialogTrigger asChild>
+                          <Button disabled={!activeSupplier}>Добавить товар</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader><DialogTitle>Новый товар контрагента</DialogTitle></DialogHeader>
+                          <form onSubmit={submit} className="space-y-3">
+                            <div className="space-y-2"><Label>Наименование</Label><Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-2"><Label>Количество</Label><Input type="number" min="0" step="0.01" value={formData.quantity_available} onChange={(e) => setFormData({ ...formData, quantity_available: Number(e.target.value) })} /></div>
+                              <div className="space-y-2"><Label>Цена закупа</Label><Input type="number" min="0" step="0.01" value={formData.purchase_price} onChange={(e) => setFormData({ ...formData, purchase_price: Number(e.target.value) })} /></div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Тип товара</Label>
+                              <Select value={formData.item_type} onValueChange={(value) => setFormData({ ...formData, item_type: value as SupplierItemType })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pesticide">СЗР</SelectItem>
+                                  <SelectItem value="fertilizer">Удобрения</SelectItem>
+                                  <SelectItem value="seeds">Семена</SelectItem>
+                                  <SelectItem value="service">Услуги</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Склад прибытия</Label>
+                              <Select value={warehouse} onValueChange={setWarehouse}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>{WAREHOUSES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2 rounded-md border p-3">
+                              <p className="text-sm font-medium">Чекпоинты</p>
+                              <div className="flex items-center gap-2"><Checkbox checked={purchaseContractCreated} onCheckedChange={(v) => setPurchaseContractCreated(Boolean(v))} /><Label>Создать договор покупки</Label></div>
+                              <div className="flex items-center gap-2"><Checkbox checked={shippingDocsChecked} onCheckedChange={(v) => setShippingDocsChecked(Boolean(v))} /><Label>Проверка документов отгрузки</Label></div>
+                              <div className="space-y-2">
+                                <Label>Готово к растаможке</Label>
+                                <Select value={customsStatus} onValueChange={(value) => setCustomsStatus(value as "not_ready" | "ready")}>
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="not_ready">Не готово</SelectItem>
+                                    <SelectItem value="ready">Готово</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <Button className="w-full" type="submit">Сохранить</Button>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                     <Table>
                       <TableHeader><TableRow><TableHead>Товар</TableHead><TableHead>Тип</TableHead><TableHead>Кол-во</TableHead><TableHead>Склад</TableHead><TableHead>Растаможка</TableHead><TableHead /></TableRow></TableHeader>
                       <TableBody>
