@@ -38,8 +38,8 @@ const getSupplierKindMap = (): Record<string, SupplierKind> => {
 
 export default function SupplierCards() {
   const [searchParams] = useSearchParams();
-  const pageTitle = "Поставщики";
-  const pageDescription = "Раздел объединяет список поставщиков и карточки с товарами.";
+  const pageTitle = "Прочие";
+  const pageDescription = "Раздел объединяет список прочих контрагентов и карточки с товарами.";
 
   const { data: suppliers = [] } = useSuppliers();
   const [search, setSearch] = useState("");
@@ -63,7 +63,7 @@ export default function SupplierCards() {
   const supplierKinds = getSupplierKindMap();
 
   const visibleSuppliers = useMemo(
-    () => suppliers.filter((item) => (supplierKinds[String(item.id)] ?? "supplier") === "supplier"),
+    () => suppliers.filter((item) => (supplierKinds[String(item.id)] ?? "supplier") === "other"),
     [suppliers, supplierKinds],
   );
 
@@ -133,7 +133,7 @@ export default function SupplierCards() {
           </div>
           <div className="flex gap-2">
             <Button asChild variant="outline">
-              <Link to="/counterparties/suppliers">Управление контрагентами</Link>
+              <Link to="/counterparties/others">Управление контрагентами</Link>
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
