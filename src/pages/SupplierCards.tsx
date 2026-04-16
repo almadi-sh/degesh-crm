@@ -99,6 +99,7 @@ export default function SupplierCards() {
     () => filteredSuppliers.find((item) => item.id === activeSupplierId) ?? null,
     [filteredSuppliers, activeSupplierId],
   );
+  const activeSupplierMeta = activeSupplier ? getSupplierCreationMeta(activeSupplier.id) : null;
 
   const { data: items = [] } = useSupplierItems(activeSupplier?.id ?? undefined);
 
@@ -133,7 +134,7 @@ export default function SupplierCards() {
           </div>
           <div className="flex gap-2">
             <Button asChild variant="outline">
-              <Link to="/counterparties/suppliers">Управление контрагентами</Link>
+              <Link to="/counterparties/suppliers">Добавить поставщика</Link>
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
@@ -247,8 +248,10 @@ export default function SupplierCards() {
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">Кто создал</p>
-                      <p>{getSupplierCreationMeta(activeSupplier.id).createdBy ?? activeSupplier.created_by_user ?? "—"}</p>
-                      <p className="text-xs text-muted-foreground">{formatCreatedAt(getSupplierCreationMeta(activeSupplier.id).createdAt)}</p>
+                      <p>{activeSupplierMeta?.createdBy ?? activeSupplier.created_by_user ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {activeSupplierMeta?.createdAt ? formatCreatedAt(activeSupplierMeta.createdAt) : "—"}
+                      </p>
                     </div>
                   </div>
                 </div>
