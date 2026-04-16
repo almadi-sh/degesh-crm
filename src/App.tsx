@@ -13,6 +13,7 @@ import Incoming from "./pages/Incoming";
 import Reservations from "./pages/Reservations";
 import ClientCards from "./pages/ClientCards";
 import SupplierCards from "./pages/SupplierCards";
+import SupplierOtherCards from "./pages/SupplierOtherCards";
 import SalesAnalytics from "./pages/SalesAnalytics";
 import InventoryAnalytics from "./pages/InventoryAnalytics";
 import NotFound from "./pages/NotFound";
@@ -43,9 +44,10 @@ const App = () => (
               <Route path="/reservations" element={<Reservations />} />
               <Route path="/client-cards" element={<ClientCards />} />
               <Route path="/supplier-cards" element={<SupplierCards />} />
+              <Route path="/supplier-others-cards" element={<SupplierOtherCards />} />
               <Route path="/counterparties/buyers" element={<Navigate to="/client-cards" replace />} />
               <Route path="/counterparties/suppliers" element={<Navigate to="/supplier-cards" replace />} />
-              <Route path="/counterparties/others" element={<Navigate to="/supplier-cards?tab=others" replace />} />
+              <Route path="/counterparties/others" element={<Navigate to="/supplier-others-cards" replace />} />
               <Route path="/sales-analytics" element={<SalesAnalytics />} />
               <Route path="/inventory-analytics" element={<InventoryAnalytics />} />
               <Route path="*" element={<NotFound />} />

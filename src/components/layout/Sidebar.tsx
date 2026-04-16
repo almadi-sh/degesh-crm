@@ -34,7 +34,7 @@ const navigation: NavItem[] = [
     children: [
       { name: "Покупатели", href: "/client-cards" },
       { name: "Поставщики", href: "/supplier-cards" },
-      { name: "Прочие", href: "/supplier-cards?tab=others" },
+      { name: "Прочие", href: "/supplier-others-cards" },
     ],
   },
   {

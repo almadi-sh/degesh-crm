@@ -434,7 +434,7 @@ export default function Suppliers({ mode }: SuppliersPageProps) {
                   {filteredOthers.map((item) => {
                     const meta = getSupplierCreationMeta(item.id);
                     return (
-                      <TableRow key={item.id} className="cursor-pointer" onClick={() => navigate(`/supplier-cards?supplierId=${item.id}&tab=others`)}>
+                      <TableRow key={item.id} className="cursor-pointer" onClick={() => navigate(`/supplier-others-cards?supplierId=${item.id}`)}>
                         <TableCell>{item.name}</TableCell>
                         <TableCell>{item.contact_person ?? "—"}</TableCell>
                         <TableCell>{item.city ?? "—"}</TableCell>
