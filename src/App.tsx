@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Requests from "./pages/Requests";
 import Clients from "./pages/Clients";
@@ -12,7 +12,6 @@ import Inventory from "./pages/Inventory";
 import Incoming from "./pages/Incoming";
 import Reservations from "./pages/Reservations";
 import ClientCards from "./pages/ClientCards";
-import Suppliers from "./pages/Suppliers";
 import SupplierCards from "./pages/SupplierCards";
 import SalesAnalytics from "./pages/SalesAnalytics";
 import InventoryAnalytics from "./pages/InventoryAnalytics";
@@ -43,10 +42,10 @@ const App = () => (
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/reservations" element={<Reservations />} />
               <Route path="/client-cards" element={<ClientCards />} />
-              <Route path="/counterparties/buyers" element={<Suppliers mode="buyers" />} />
-              <Route path="/counterparties/suppliers" element={<Suppliers mode="suppliers" />} />
-              <Route path="/counterparties/others" element={<Suppliers mode="others" />} />
               <Route path="/supplier-cards" element={<SupplierCards />} />
+              <Route path="/counterparties/buyers" element={<Navigate to="/client-cards" replace />} />
+              <Route path="/counterparties/suppliers" element={<Navigate to="/supplier-cards" replace />} />
+              <Route path="/counterparties/others" element={<Navigate to="/supplier-cards?tab=others" replace />} />
               <Route path="/sales-analytics" element={<SalesAnalytics />} />
               <Route path="/inventory-analytics" element={<InventoryAnalytics />} />
               <Route path="*" element={<NotFound />} />
