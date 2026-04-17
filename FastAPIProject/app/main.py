@@ -44,6 +44,28 @@ if inspector.has_table("customers"):
             if column_name not in columns:
                 connection.execute(text(f"ALTER TABLE customers ADD COLUMN {column_name} VARCHAR"))
 
+
+if inspector.has_table("suppliers"):
+    columns = {column["name"] for column in inspector.get_columns("suppliers")}
+    expected_columns = [
+        "legal_form",
+        "supplier_scope",
+        "product_type",
+        "bin_iin",
+        "city",
+        "legal_address",
+        "contact_person",
+        "phone",
+        "email",
+        "payment_terms",
+        "notes",
+        "created_by_user",
+    ]
+    with engine.begin() as connection:
+        for column_name in expected_columns:
+            if column_name not in columns:
+                connection.execute(text(f"ALTER TABLE suppliers ADD COLUMN {column_name} VARCHAR"))
+
 if inspector.has_table("inventory_receipts"):
     columns = {column["name"] for column in inspector.get_columns("inventory_receipts")}
     with engine.begin() as connection:
