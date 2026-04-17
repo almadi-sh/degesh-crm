@@ -25,6 +25,7 @@ interface SuppliersPageProps {
 interface SupplierFormState {
   name: string;
   supplier_scope: "international" | "domestic";
+  product_type: "pesticide" | "fertilizer" | "seeds";
   bin_iin: string;
   country: string;
   city: string;
@@ -37,6 +38,7 @@ interface SupplierFormState {
 const EMPTY_SUPPLIER_FORM: SupplierFormState = {
   name: "",
   supplier_scope: "international",
+  product_type: "seeds",
   bin_iin: "",
   country: "",
   city: "",
@@ -191,6 +193,8 @@ export default function Suppliers({ mode }: SuppliersPageProps) {
     const payload: SupplierInsert = {
       name: supplierForm.name,
       legal_form: isInternational ? "Международный" : "Внутренний",
+      supplier_scope: supplierForm.supplier_scope,
+      product_type: supplierForm.product_type,
       bin_iin: isInternational ? null : supplierForm.bin_iin,
       city: supplierForm.city,
       legal_address: isInternational ? `${supplierForm.country}, ${supplierForm.city}` : supplierForm.city,
@@ -218,6 +222,8 @@ export default function Suppliers({ mode }: SuppliersPageProps) {
       id: editingSupplier.id,
       name: supplierForm.name,
       legal_form: isInternational ? "Международный" : "Внутренний",
+      supplier_scope: supplierForm.supplier_scope,
+      product_type: supplierForm.product_type,
       bin_iin: isInternational ? null : supplierForm.bin_iin,
       city: supplierForm.city,
       legal_address: isInternational ? `${supplierForm.country}, ${supplierForm.city}` : supplierForm.city,
@@ -260,6 +266,7 @@ export default function Suppliers({ mode }: SuppliersPageProps) {
     setSupplierForm({
       name: supplier.name,
       supplier_scope: isInternational ? "international" : "domestic",
+      product_type: supplier.product_type ?? "seeds",
       bin_iin: supplier.bin_iin ?? "",
       country: isInternational ? supplier.notes?.replace("Страна: ", "") ?? "" : "",
       city: supplier.city ?? "",
@@ -359,6 +366,17 @@ export default function Suppliers({ mode }: SuppliersPageProps) {
                       <SelectContent>
                         <SelectItem value="international">Международный</SelectItem>
                         <SelectItem value="domestic">Внутренний</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Тип товара *</Label>
+                    <Select value={supplierForm.product_type} onValueChange={(value) => setSupplierForm({ ...supplierForm, product_type: value as "pesticide" | "fertilizer" | "seeds" })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pesticide">СЗР</SelectItem>
+                        <SelectItem value="fertilizer">Удобрения</SelectItem>
+                        <SelectItem value="seeds">Семена</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

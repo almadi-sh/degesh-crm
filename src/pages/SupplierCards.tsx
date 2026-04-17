@@ -17,6 +17,7 @@ import { getSupplierItemWorkflow, setSupplierItemWorkflow } from "@/lib/supplier
 import { formatCreatedAt, getSupplierCreationMeta } from "@/lib/counterpartyMeta";
 import { useCreateSupplier } from "@/hooks/useSuppliers";
 import { useAuth } from "@/hooks/useAuth";
+import { Plus } from "lucide-react";
 
 const SUPPLIER_KIND_STORAGE_KEY = "supplierKindMap";
 type SupplierKind = "supplier" | "other";
@@ -54,6 +55,7 @@ export default function SupplierCards() {
   const [supplierForm, setSupplierForm] = useState({
     name: "",
     supplier_scope: "international" as "international" | "domestic",
+    product_type: "seeds" as "pesticide" | "fertilizer" | "seeds",
     bin_iin: "",
     country: "",
     city: "",
@@ -143,6 +145,8 @@ export default function SupplierCards() {
     const created = await createSupplier.mutateAsync({
       name: supplierForm.name,
       legal_form: isInternational ? "Международный" : "Внутренний",
+      supplier_scope: supplierForm.supplier_scope,
+      product_type: supplierForm.product_type,
       bin_iin: isInternational ? null : supplierForm.bin_iin,
       city: supplierForm.city,
       legal_address: isInternational ? `${supplierForm.country}, ${supplierForm.city}` : supplierForm.city,
@@ -162,6 +166,7 @@ export default function SupplierCards() {
     setSupplierForm({
       name: "",
       supplier_scope: "international",
+      product_type: "seeds",
       bin_iin: "",
       country: "",
       city: "",
@@ -204,7 +209,12 @@ export default function SupplierCards() {
           </div>
           <div className="flex gap-2">
             <Dialog open={openSupplierDialog} onOpenChange={setOpenSupplierDialog}>
-              <DialogTrigger asChild><Button variant="outline">Добавить поставщика</Button></DialogTrigger>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Добавить поставщика
+                </Button>
+              </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader><DialogTitle>Поставщик СЗР / Удобрения / Семена</DialogTitle></DialogHeader>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -216,6 +226,17 @@ export default function SupplierCards() {
                       <SelectContent>
                         <SelectItem value="international">Международный</SelectItem>
                         <SelectItem value="domestic">Внутренний</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Тип товара *</Label>
+                    <Select value={supplierForm.product_type} onValueChange={(value) => setSupplierForm({ ...supplierForm, product_type: value as "pesticide" | "fertilizer" | "seeds" })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pesticide">СЗР</SelectItem>
+                        <SelectItem value="fertilizer">Удобрения</SelectItem>
+                        <SelectItem value="seeds">Семена</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

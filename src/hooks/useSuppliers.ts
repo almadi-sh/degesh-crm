@@ -6,6 +6,8 @@ export interface Supplier {
   id: number;
   name: string;
   legal_form?: string | null;
+  supplier_scope?: "international" | "domestic" | null;
+  product_type?: "pesticide" | "fertilizer" | "seeds" | null;
   bin_iin?: string | null;
   city?: string | null;
   legal_address?: string | null;
@@ -25,6 +27,8 @@ export interface SupplierFilters {
   bin_iin?: string;
   city?: string;
   contact_person?: string;
+  supplier_scope?: "international" | "domestic";
+  product_type?: "pesticide" | "fertilizer" | "seeds";
 }
 
 export function useSuppliers(filters?: SupplierFilters) {
@@ -36,6 +40,8 @@ export function useSuppliers(filters?: SupplierFilters) {
       if (filters?.bin_iin) params.set("bin_iin", filters.bin_iin);
       if (filters?.city) params.set("city", filters.city);
       if (filters?.contact_person) params.set("contact_person", filters.contact_person);
+      if (filters?.supplier_scope) params.set("supplier_scope", filters.supplier_scope);
+      if (filters?.product_type) params.set("product_type", filters.product_type);
       const query = params.toString();
       return apiFetch<Supplier[]>(`/api/v1/suppliers/${query ? `?${query}` : ""}`);
     },

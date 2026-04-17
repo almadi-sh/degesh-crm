@@ -17,6 +17,7 @@ import { getSupplierItemWorkflow, setSupplierItemWorkflow } from "@/lib/supplier
 import { formatCreatedAt, getSupplierCreationMeta } from "@/lib/counterpartyMeta";
 import { useCreateSupplier } from "@/hooks/useSuppliers";
 import { useAuth } from "@/hooks/useAuth";
+import { Plus } from "lucide-react";
 
 const SUPPLIER_KIND_STORAGE_KEY = "supplierKindMap";
 type SupplierKind = "supplier" | "other";
@@ -200,7 +201,12 @@ export default function SupplierOtherCards() {
           </div>
           <div className="flex gap-2">
             <Dialog open={openOtherDialog} onOpenChange={setOpenOtherDialog}>
-              <DialogTrigger asChild><Button variant="outline">Добавить контрагента</Button></DialogTrigger>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Добавить контрагента
+                </Button>
+              </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader><DialogTitle>Прочие поставщики</DialogTitle></DialogHeader>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

@@ -32,6 +32,8 @@ def list_suppliers(
     bin_iin: str | None = Query(default=None),
     city: str | None = Query(default=None),
     contact_person: str | None = Query(default=None),
+    supplier_scope: str | None = Query(default=None),
+    product_type: str | None = Query(default=None),
 ):
     query = db.query(Supplier)
     if name:
@@ -42,6 +44,10 @@ def list_suppliers(
         query = query.filter(Supplier.city.ilike(f"%{city}%"))
     if contact_person:
         query = query.filter(Supplier.contact_person.ilike(f"%{contact_person}%"))
+    if supplier_scope:
+        query = query.filter(Supplier.supplier_scope == supplier_scope)
+    if product_type:
+        query = query.filter(Supplier.product_type == product_type)
     return query.order_by(Supplier.name.asc()).all()
 
 
