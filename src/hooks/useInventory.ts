@@ -12,6 +12,8 @@ export interface InventorySnapshotItem {
   product_id: number;
   product_name: string;
   supplier_name: string;
+  supplier_scope?: "international" | "domestic" | null;
+  supplier_product_type?: "pesticide" | "fertilizer" | "seeds" | null;
   incoming_total: number;
   reserved_total: number;
   available_total: number;
@@ -59,6 +61,8 @@ export interface InventoryFilters {
 export interface InventorySnapshotFilters {
   product_id?: number;
   search?: string;
+  supplier_scope?: "international" | "domestic";
+  product_type?: "pesticide" | "fertilizer" | "seeds";
 }
 
 export type InventoryUpdate = Partial<Omit<InventoryItem, "id" | "product_id">>;
@@ -82,6 +86,8 @@ export function useInventorySnapshot(filters?: InventorySnapshotFilters) {
       const params = new URLSearchParams();
       if (filters?.product_id) params.set("product_id", String(filters.product_id));
       if (filters?.search) params.set("search", filters.search);
+      if (filters?.supplier_scope) params.set("supplier_scope", filters.supplier_scope);
+      if (filters?.product_type) params.set("product_type", filters.product_type);
       const query = params.toString();
       return apiFetch<InventorySnapshotItem[]>(`/api/v1/inventory/snapshot${query ? `?${query}` : ""}`);
     },

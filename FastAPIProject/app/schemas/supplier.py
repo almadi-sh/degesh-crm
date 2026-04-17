@@ -4,6 +4,8 @@ from pydantic import BaseModel, field_validator
 class SupplierBase(BaseModel):
     name: str
     legal_form: str | None = None
+    supplier_scope: str | None = None
+    product_type: str | None = None
     bin_iin: str | None = None
     city: str | None = None
     legal_address: str | None = None
@@ -48,6 +50,8 @@ class SupplierCreate(SupplierBase):
 class SupplierUpdate(BaseModel):
     name: str | None = None
     legal_form: str | None = None
+    supplier_scope: str | None = None
+    product_type: str | None = None
     bin_iin: str | None = None
     city: str | None = None
     legal_address: str | None = None

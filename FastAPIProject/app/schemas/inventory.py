@@ -25,6 +25,8 @@ class InventorySnapshotItem(BaseModel):
     product_id: int
     product_name: str
     supplier_name: str
+    supplier_scope: str | None = None
+    supplier_product_type: str | None = None
     incoming_total: float
     reserved_total: float
     available_total: float

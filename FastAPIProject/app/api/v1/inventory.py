@@ -189,40 +189,52 @@ def inventory_snapshot(
     db: Session = Depends(get_db),
     product_id: int | None = Query(default=None),
     search: str | None = Query(default=None),
+    supplier_scope: str | None = Query(default=None),
+    product_type: str | None = Query(default=None),
 ):
     query = (
         db.query(
             Product.id.label("product_id"),
             Product.name.label("product_name"),
+            Supplier.name.label("supplier_name"),
+            Supplier.supplier_scope.label("supplier_scope"),
+            Supplier.product_type.label("supplier_product_type"),
             func.coalesce(func.sum(InventoryReceipt.quantity), 0).label("incoming_total"),
             func.coalesce(func.sum(Reservation.quantity), 0).label("reserved_total"),
             func.max(Inventory.quantity_available).label("available_total"),
         )
         .join(Inventory, Inventory.product_id == Product.id)
         .outerjoin(InventoryReceipt, InventoryReceipt.product_id == Product.id)
+        .outerjoin(Supplier, Supplier.id == InventoryReceipt.supplier_id)
         .outerjoin(
             Reservation,
             (Reservation.product_id == Product.id) & (Reservation.status == "active"),
         )
-        .group_by(Product.id, Product.name)
+        .group_by(Product.id, Product.name, Supplier.name, Supplier.supplier_scope, Supplier.product_type)
     )
 
     if product_id is not None:
         query = query.filter(Product.id == product_id)
     if search:
-        query = query.filter(Product.name.ilike(f"%{search}%"))
+        query = query.filter(
+            Product.name.ilike(f"%{search}%")
+            | Supplier.name.ilike(f"%{search}%")
+        )
+    if supplier_scope:
+        query = query.filter(Supplier.supplier_scope == supplier_scope)
+    if product_type:
+        query = query.filter(Supplier.product_type == product_type)
 
     items: list[InventorySnapshotItem] = []
     for row in query.all():
-        supplier_name = "—"
-        if "|" in row.product_name:
-            supplier_name = row.product_name.split("|", maxsplit=1)[0].strip()
         balance = float(row.incoming_total) - float(row.reserved_total)
         items.append(
             InventorySnapshotItem(
                 product_id=row.product_id,
                 product_name=row.product_name,
-                supplier_name=supplier_name,
+                supplier_name=row.supplier_name or "—",
+                supplier_scope=row.supplier_scope,
+                supplier_product_type=row.supplier_product_type,
                 incoming_total=float(row.incoming_total),
                 reserved_total=float(row.reserved_total),
                 available_total=float(row.available_total or 0),
