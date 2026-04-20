@@ -15,7 +15,7 @@ import { useSuppliers } from "@/hooks/useSuppliers";
 import { SupplierItemInsert, SupplierItemType, useCreateSupplierItem, useDeleteSupplierItem, useSupplierItems } from "@/hooks/useSupplierItems";
 import { getSupplierItemWorkflow, setSupplierItemWorkflow } from "@/lib/supplierWorkflow";
 import { formatCreatedAt, getSupplierCreationMeta } from "@/lib/counterpartyMeta";
-import { useCreateSupplier } from "@/hooks/useSuppliers";
+import { useCreateSupplier, useDeleteSupplier, useUpdateSupplier } from "@/hooks/useSuppliers";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus } from "lucide-react";
 
@@ -51,8 +51,21 @@ export default function SupplierCards() {
   const [activeSupplierId, setActiveSupplierId] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [openSupplierDialog, setOpenSupplierDialog] = useState(false);
+  const [openEditSupplierDialog, setOpenEditSupplierDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("goods");
   const [supplierForm, setSupplierForm] = useState({
+    name: "",
+    supplier_scope: "international" as "international" | "domestic",
+    product_type: "seeds" as "pesticide" | "fertilizer" | "seeds",
+    bin_iin: "",
+    country: "",
+    city: "",
+    email: "",
+    contact_person_1: "",
+    contact_person_2: "",
+    phone: "",
+  });
+  const [editSupplierForm, setEditSupplierForm] = useState({
     name: "",
     supplier_scope: "international" as "international" | "domestic",
     product_type: "seeds" as "pesticide" | "fertilizer" | "seeds",
@@ -79,6 +92,8 @@ export default function SupplierCards() {
 
   const createItem = useCreateSupplierItem();
   const createSupplier = useCreateSupplier();
+  const updateSupplier = useUpdateSupplier();
+  const deleteSupplier = useDeleteSupplier();
   const deleteItem = useDeleteSupplierItem();
   const supplierKinds = getSupplierKindMap();
 
@@ -178,6 +193,55 @@ export default function SupplierCards() {
     setActiveSupplierId(created.id);
   };
 
+  const openEditSupplier = () => {
+    if (!activeSupplier) return;
+    const [contactPerson1 = "", contactPerson2 = ""] = (activeSupplier.contact_person ?? "").split(";").map((item) => item.trim());
+    const countryFromNotes = (activeSupplier.notes ?? "").replace("Страна:", "").trim();
+    setEditSupplierForm({
+      name: activeSupplier.name ?? "",
+      supplier_scope: activeSupplier.supplier_scope ?? "international",
+      product_type: activeSupplier.product_type ?? "seeds",
+      bin_iin: activeSupplier.bin_iin ?? "",
+      country: countryFromNotes,
+      city: activeSupplier.city ?? "",
+      email: activeSupplier.email ?? "",
+      contact_person_1: contactPerson1,
+      contact_person_2: contactPerson2,
+      phone: activeSupplier.phone ?? "",
+    });
+    setOpenEditSupplierDialog(true);
+  };
+
+  const submitEditSupplier = async () => {
+    if (!activeSupplier) return;
+    const isInternational = editSupplierForm.supplier_scope === "international";
+    await updateSupplier.mutateAsync({
+      id: activeSupplier.id,
+      name: editSupplierForm.name,
+      legal_form: isInternational ? "Международный" : "Внутренний",
+      supplier_scope: editSupplierForm.supplier_scope,
+      product_type: editSupplierForm.product_type,
+      bin_iin: isInternational ? null : editSupplierForm.bin_iin || null,
+      city: editSupplierForm.city || null,
+      legal_address: isInternational ? `${editSupplierForm.country}, ${editSupplierForm.city}` : editSupplierForm.city || null,
+      email: editSupplierForm.email || null,
+      contact_person: editSupplierForm.contact_person_2
+        ? `${editSupplierForm.contact_person_1}; ${editSupplierForm.contact_person_2}`
+        : editSupplierForm.contact_person_1,
+      phone: editSupplierForm.phone || null,
+      notes: isInternational ? `Страна: ${editSupplierForm.country}` : "",
+    });
+    setOpenEditSupplierDialog(false);
+  };
+
+  const removeSupplier = async () => {
+    if (!activeSupplier) return;
+    const isConfirmed = window.confirm(`Удалить контрагента «${activeSupplier.name}»?`);
+    if (!isConfirmed) return;
+    await deleteSupplier.mutateAsync(activeSupplier.id);
+    setActiveSupplierId(null);
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!activeSupplier) return;
@@ -255,6 +319,49 @@ export default function SupplierCards() {
                 <Button className="mt-4 w-full" onClick={createSupplierRecord}>Создать поставщика</Button>
               </DialogContent>
             </Dialog>
+            <Dialog open={openEditSupplierDialog} onOpenChange={setOpenEditSupplierDialog}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader><DialogTitle>Редактировать контрагента</DialogTitle></DialogHeader>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2"><Label>Наименование *</Label><Input value={editSupplierForm.name} onChange={(e) => setEditSupplierForm({ ...editSupplierForm, name: e.target.value })} /></div>
+                  <div className="space-y-2">
+                    <Label>Международный/Внутренний *</Label>
+                    <Select value={editSupplierForm.supplier_scope} onValueChange={(value) => setEditSupplierForm({ ...editSupplierForm, supplier_scope: value as "international" | "domestic" })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="international">Международный</SelectItem>
+                        <SelectItem value="domestic">Внутренний</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Тип товара *</Label>
+                    <Select value={editSupplierForm.product_type} onValueChange={(value) => setEditSupplierForm({ ...editSupplierForm, product_type: value as "pesticide" | "fertilizer" | "seeds" })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pesticide">СЗР</SelectItem>
+                        <SelectItem value="fertilizer">Удобрения</SelectItem>
+                        <SelectItem value="seeds">Семена</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {editSupplierForm.supplier_scope === "domestic" && (
+                    <div className="space-y-2"><Label>БИН/ИИН *</Label><Input value={editSupplierForm.bin_iin} maxLength={12} onChange={(e) => setEditSupplierForm({ ...editSupplierForm, bin_iin: e.target.value.replace(/\D/g, "") })} /></div>
+                  )}
+                  {editSupplierForm.supplier_scope === "international" && (
+                    <div className="space-y-2"><Label>Страна *</Label><Input value={editSupplierForm.country} onChange={(e) => setEditSupplierForm({ ...editSupplierForm, country: e.target.value })} /></div>
+                  )}
+                  <div className="space-y-2"><Label>Город *</Label><Input value={editSupplierForm.city} onChange={(e) => setEditSupplierForm({ ...editSupplierForm, city: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Контактное лицо 1 *</Label><Input value={editSupplierForm.contact_person_1} onChange={(e) => setEditSupplierForm({ ...editSupplierForm, contact_person_1: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Контактное лицо 2</Label><Input value={editSupplierForm.contact_person_2} onChange={(e) => setEditSupplierForm({ ...editSupplierForm, contact_person_2: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Email</Label><Input value={editSupplierForm.email} onChange={(e) => setEditSupplierForm({ ...editSupplierForm, email: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Телефон</Label><Input value={editSupplierForm.phone} onChange={(e) => setEditSupplierForm({ ...editSupplierForm, phone: e.target.value })} /></div>
+                </div>
+                <Button className="mt-4 w-full" onClick={submitEditSupplier} disabled={updateSupplier.isPending}>
+                  {updateSupplier.isPending ? "Сохранение..." : "Сохранить изменения"}
+                </Button>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -290,12 +397,23 @@ export default function SupplierCards() {
               <p className="text-sm text-muted-foreground">Контрагент не выбран.</p>
             ) : (
               <div className="space-y-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xl font-semibold leading-tight">{activeSupplier.name}</p>
+                    <p className="text-sm text-muted-foreground">{activeSupplier.legal_form ?? "Контрагент"}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={openEditSupplier}>
+                      Редактировать
+                    </Button>
+                    <Button type="button" variant="destructive" size="sm" onClick={removeSupplier} disabled={deleteSupplier.isPending}>
+                      {deleteSupplier.isPending ? "Удаление..." : "Удалить"}
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div className="space-y-4">
-                    <div>
-                      <p className="text-xl font-semibold leading-tight">{activeSupplier.name}</p>
-                      <p className="text-sm text-muted-foreground">{activeSupplier.legal_form ?? "Контрагент"}</p>
-                    </div>
                     <div>
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">БИН/ИИН</p>
                       <p>{activeSupplier.bin_iin ?? "—"}</p>

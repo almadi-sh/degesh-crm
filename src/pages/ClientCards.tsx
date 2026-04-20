@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { useClients, useCreateClient, ClientInsert } from "@/hooks/useClients";
+import { useClients, useCreateClient, useDeleteClient, useUpdateClient, ClientInsert } from "@/hooks/useClients";
 import {
   useContracts,
   useCreateContract,
@@ -101,11 +101,15 @@ export default function ClientCards() {
   const { data: products = [] } = useProducts();
   const { user } = useAuth();
   const createClient = useCreateClient();
+  const updateClient = useUpdateClient();
+  const deleteClient = useDeleteClient();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [activeClientId, setActiveClientId] = useState<number | null>(null);
   const [isCreateClientDialogOpen, setIsCreateClientDialogOpen] = useState(false);
+  const [isEditClientDialogOpen, setIsEditClientDialogOpen] = useState(false);
   const [newClientData, setNewClientData] = useState<ClientInsert>(EMPTY_CLIENT);
+  const [editClientData, setEditClientData] = useState<ClientInsert>(EMPTY_CLIENT);
 
   const managers = useMemo(() => DEMO_EMPLOYEES.filter((employee) => employee.role === "manager"), []);
   const sales = useMemo(() => DEMO_EMPLOYEES.filter((employee) => employee.role === "sales"), []);
@@ -511,6 +515,43 @@ export default function ClientCards() {
     setNewClientData(EMPTY_CLIENT);
   };
 
+  const openEditClientDialog = () => {
+    if (!activeClient) return;
+    setEditClientData({
+      name: activeClient.name,
+      legal_form: activeClient.legal_form ?? null,
+      contract_signer_full_name: activeClient.contract_signer_full_name ?? null,
+      contract_signer_role: activeClient.contract_signer_role ?? null,
+      contract_signer_basis: activeClient.contract_signer_basis ?? null,
+      bin_iin: activeClient.bin_iin ?? null,
+      city: activeClient.city ?? null,
+      legal_address: activeClient.legal_address ?? null,
+      address: activeClient.address ?? null,
+      tax_regime: activeClient.tax_regime ?? null,
+      created_by_user: activeClient.created_by_user ?? null,
+      initial_contact_user: activeClient.initial_contact_user ?? null,
+    });
+    setIsEditClientDialogOpen(true);
+  };
+
+  const handleUpdateClient = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!activeClient) return;
+    await updateClient.mutateAsync({
+      id: activeClient.id,
+      ...editClientData,
+    });
+    setIsEditClientDialogOpen(false);
+  };
+
+  const handleDeleteClient = async () => {
+    if (!activeClient) return;
+    const isConfirmed = window.confirm(`Удалить покупателя «${activeClient.name}»?`);
+    if (!isConfirmed) return;
+    await deleteClient.mutateAsync(activeClient.id);
+    setActiveClientId(null);
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -639,9 +680,19 @@ export default function ClientCards() {
                 <p className="text-sm text-muted-foreground">Клиент не выбран.</p>
               ) : (
                 <div className="space-y-6">
-                  <div>
-                    <h2 className="text-xl font-semibold">{activeClient.name}</h2>
-                    <p className="text-sm text-muted-foreground">{activeClient.legal_form ?? "—"} • {activeClient.tax_regime ?? "Налоговый режим не указан"}</p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="text-xl font-semibold">{activeClient.name}</h2>
+                      <p className="text-sm text-muted-foreground">{activeClient.legal_form ?? "—"} • {activeClient.tax_regime ?? "Налоговый режим не указан"}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={openEditClientDialog}>
+                        Редактировать
+                      </Button>
+                      <Button type="button" variant="destructive" size="sm" onClick={handleDeleteClient} disabled={deleteClient.isPending}>
+                        {deleteClient.isPending ? "Удаление..." : "Удалить"}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1097,6 +1148,85 @@ export default function ClientCards() {
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isEditClientDialogOpen} onOpenChange={setIsEditClientDialogOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="font-display text-xl">Редактировать покупателя</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdateClient} className="mt-4 max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Наименование клиента *</Label>
+                  <Input value={editClientData.name} onChange={(e) => setEditClientData({ ...editClientData, name: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Форма лица</Label>
+                  <Select value={editClientData.legal_form ?? ""} onValueChange={(value) => setEditClientData({ ...editClientData, legal_form: value })}>
+                    <SelectTrigger><SelectValue placeholder="КХ / ТОО / ИП / ФХ" /></SelectTrigger>
+                    <SelectContent>{["КХ", "ТОО", "ИП", "ФХ"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Лицо на кого оформляется договор (ФИО)</Label>
+                  <Input value={editClientData.contract_signer_full_name ?? ""} onChange={(e) => setEditClientData({ ...editClientData, contract_signer_full_name: e.target.value || null })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Контактное лицо 1 — роль (опционально)</Label>
+                  <Input value={editClientData.contract_signer_role ?? ""} onChange={(e) => setEditClientData({ ...editClientData, contract_signer_role: e.target.value || null })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Контактное лицо 2 — роль (опционально)</Label>
+                  <Input value={editClientData.contract_signer_basis ?? ""} onChange={(e) => setEditClientData({ ...editClientData, contract_signer_basis: e.target.value || null })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>БИН/ИИН (12 цифр)</Label>
+                  <Input value={editClientData.bin_iin ?? ""} maxLength={12} onChange={(e) => setEditClientData({ ...editClientData, bin_iin: e.target.value.replace(/\D/g, "") || null })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Налоговый режим</Label>
+                  <Select value={editClientData.tax_regime ?? ""} onValueChange={(value) => setEditClientData({ ...editClientData, tax_regime: value })}>
+                    <SelectTrigger><SelectValue placeholder="Общеустановленный / Упрощенный" /></SelectTrigger>
+                    <SelectContent>{["Общеустановленный", "Упрощенный"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Город</Label>
+                  <Select value={editClientData.city ?? ""} onValueChange={(value) => setEditClientData({ ...editClientData, city: value })}>
+                    <SelectTrigger><SelectValue placeholder="Выберите город" /></SelectTrigger>
+                    <SelectContent>{KZ_CITIES.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Юр. адрес</Label>
+                  <Input value={editClientData.legal_address ?? ""} onChange={(e) => setEditClientData({ ...editClientData, legal_address: e.target.value || null, address: e.target.value || null })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Кто создал в системе</Label>
+                  <Select value={editClientData.created_by_user ?? ""} onValueChange={(value) => setEditClientData({ ...editClientData, created_by_user: value })}>
+                    <SelectTrigger><SelectValue placeholder="Менеджер" /></SelectTrigger>
+                    <SelectContent>{managers.map((item) => <SelectItem key={item.id} value={item.name}>{item.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Кто скоммуницировал изначально</Label>
+                  <Select value={editClientData.initial_contact_user ?? ""} onValueChange={(value) => setEditClientData({ ...editClientData, initial_contact_user: value })}>
+                    <SelectTrigger><SelectValue placeholder="Продажник" /></SelectTrigger>
+                    <SelectContent>{sales.map((item) => <SelectItem key={item.id} value={item.name}>{item.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
+                <Button type="button" variant="outline" onClick={() => setIsEditClientDialogOpen(false)}>
+                  Отмена
+                </Button>
+                <Button type="submit" disabled={updateClient.isPending}>
+                  {updateClient.isPending ? "Сохранение..." : "Сохранить изменения"}
+                </Button>
+              </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
