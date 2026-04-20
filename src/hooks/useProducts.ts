@@ -3,16 +3,28 @@ import { apiFetch } from "@/lib/apiClient";
 
 export interface Product {
   id: number;
+  supplier_id: number;
   name: string;
   unit: string;
   price: number;
+  customs_cleared: boolean;
 }
 
 export interface ProductFilters {
   name?: string;
+  supplier_id?: number;
 }
 
-export type ProductUpdate = Partial<Omit<Product, "id">>;
+export interface ProductCreate {
+  supplier_id: number;
+  name: string;
+  unit: string;
+  price: number;
+  customs_cleared: boolean;
+  quantity_available: number;
+}
+
+export type ProductUpdate = Partial<Omit<ProductCreate, "supplier_id">> & { supplier_id?: number };
 
 export function useProducts(filters?: ProductFilters) {
   return useQuery({
@@ -20,22 +32,27 @@ export function useProducts(filters?: ProductFilters) {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.name) params.set("name", filters.name);
+      if (filters?.supplier_id) params.set("supplier_id", String(filters.supplier_id));
       const query = params.toString();
       return apiFetch<Product[]>(`/api/v1/products${query ? `?${query}` : ""}`);
     },
   });
 }
 
-export function useProduct(id?: number) {
-  return useQuery({
-    queryKey: ["products", id],
-    queryFn: async () => {
-      if (!id) {
-        throw new Error("Product id is required");
-      }
-      return apiFetch<Product>(`/api/v1/products/${id}`);
+export function useCreateProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: ProductCreate) => {
+      return apiFetch<Product>("/api/v1/products/", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
     },
-    enabled: !!id,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
   });
 }
 
@@ -51,6 +68,7 @@ export function useUpdateProduct() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },
   });
 }

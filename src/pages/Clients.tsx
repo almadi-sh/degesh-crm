@@ -20,6 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Search, MapPin, Trash2, BadgeCheck } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SupplierCardsPanel } from "@/components/suppliers/SupplierCardsPanel";
 
 export default function Clients() {
   const { data: clients = [], isLoading } = useClients();
@@ -58,6 +60,13 @@ export default function Clients() {
 
   return (
     <MainLayout>
+      <Tabs defaultValue="customers" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="customers">Контрагенты</TabsTrigger>
+          <TabsTrigger value="suppliers">Поставщики (supplier-cards)</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="customers" className="space-y-6">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -189,6 +198,12 @@ export default function Clients() {
           )}
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="suppliers">
+          <SupplierCardsPanel />
+        </TabsContent>
+      </Tabs>
     </MainLayout>
   );
 }
