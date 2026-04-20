@@ -21,8 +21,7 @@ def create_product(data: ProductCreate, db: Session = Depends(get_db)):
     payload = data.dict(exclude={"quantity_available"})
     product = Product(**payload)
     db.add(product)
-    db.commit()
-    db.refresh(product)
+    db.flush()
 
     customs_status, shipment_status = _statuses(product.customs_cleared)
     inventory_item = Inventory(
@@ -35,7 +34,7 @@ def create_product(data: ProductCreate, db: Session = Depends(get_db)):
     )
     db.add(inventory_item)
     db.commit()
-
+    db.refresh(product)
     return product
 
 
@@ -76,13 +75,23 @@ def update_product(
         setattr(product, key, value)
 
     inv = db.query(Inventory).filter(Inventory.product_id == product.id).first()
+    customs_status, shipment_status = _statuses(product.customs_cleared)
     if inv:
         inv.supplier_id = product.supplier_id
-        customs_status, shipment_status = _statuses(product.customs_cleared)
         inv.customs_status = customs_status
         inv.shipment_status = shipment_status
         if data.quantity_available is not None:
             inv.quantity_available = data.quantity_available
+    else:
+        inv = Inventory(
+            product_id=product.id,
+            supplier_id=product.supplier_id,
+            quantity_available=data.quantity_available if data.quantity_available is not None else 0,
+            quantity_reserved=0,
+            customs_status=customs_status,
+            shipment_status=shipment_status,
+        )
+        db.add(inv)
 
     db.commit()
     db.refresh(product)
