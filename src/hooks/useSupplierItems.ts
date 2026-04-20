@@ -36,6 +36,9 @@ export function useCreateSupplierItem() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["supplier-items"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-snapshot"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-receipts"] });
       toast.success("Позиция поставщика добавлена");
     },
     onError: (error) => toast.error("Не удалось добавить позицию: " + error.message),
@@ -48,6 +51,9 @@ export function useDeleteSupplierItem() {
     mutationFn: async (id: number) => apiFetch<void>(`/api/v1/supplier-items/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["supplier-items"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-snapshot"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-receipts"] });
       toast.success("Позиция удалена");
     },
     onError: (error) => toast.error("Не удалось удалить позицию: " + error.message),
