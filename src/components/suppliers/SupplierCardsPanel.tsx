@@ -41,7 +41,24 @@ export function SupplierCardsPanel() {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
 
-  const productNameById = useMemo(() => new Map(products.map((product) => [product.id, product.name])), [products]);
+  const inventoryByProductId = useMemo(
+    () => new Map(inventoryItems.map((inventoryItem) => [inventoryItem.product_id, inventoryItem])),
+    [inventoryItems],
+  );
+  const warehouseRows = useMemo(
+    () =>
+      products.map((product) => {
+        const inventory = inventoryByProductId.get(product.id);
+        return {
+          productId: product.id,
+          productName: product.name,
+          quantityAvailable: inventory?.quantity_available ?? 0,
+          customsStatus: inventory?.customs_status ?? (product.customs_cleared ? "растаможен" : "не растаможен"),
+          shipmentStatus: inventory?.shipment_status ?? (product.customs_cleared ? "готов к отгрузке" : "не готов к отгрузке"),
+        };
+      }),
+    [inventoryByProductId, products],
+  );
 
   const openCreateDialog = () => {
     setEditingId(null);
@@ -217,12 +234,12 @@ export function SupplierCardsPanel() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {inventoryItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>{productNameById.get(item.product_id) ?? `#${item.product_id}`}</TableCell>
-                        <TableCell>{item.quantity_available}</TableCell>
-                        <TableCell>{item.customs_status}</TableCell>
-                        <TableCell>{item.shipment_status}</TableCell>
+                    {warehouseRows.map((item) => (
+                      <TableRow key={item.productId}>
+                        <TableCell>{item.productName ?? `#${item.productId}`}</TableCell>
+                        <TableCell>{item.quantityAvailable}</TableCell>
+                        <TableCell>{item.customsStatus}</TableCell>
+                        <TableCell>{item.shipmentStatus}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
