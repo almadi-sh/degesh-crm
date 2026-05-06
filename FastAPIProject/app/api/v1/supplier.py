@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.models.inventory_receipt import InventoryReceipt
 from app.models.supplier import Supplier
 from app.models.supplier_item import SupplierItem
 from app.schemas.supplier import SupplierCreate, SupplierOut, SupplierUpdate
@@ -83,9 +84,34 @@ def delete_supplier(supplier_id: int, db: Session = Depends(get_db)):
     if not supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
 
-    has_items = db.query(SupplierItem).filter(SupplierItem.supplier_id == supplier_id).first()
+    has_items = (
+        db.query(SupplierItem.id)
+        .filter(SupplierItem.supplier_id == supplier_id)
+        .first()
+    )
     if has_items:
-        raise HTTPException(status_code=400, detail="Supplier has related items and cannot be deleted")
+        raise HTTPException(
+            status_code=400,
+            detail="Нельзя удалить поставщика: к нему привязаны товары поставщика",
+        )
+
+    has_receipts = (
+        db.query(InventoryReceipt.id)
+        .filter(InventoryReceipt.supplier_id == supplier_id)
+        .first()
+    )
+    if has_receipts:
+        raise HTTPException(
+            status_code=400,
+            detail="Нельзя удалить поставщика: к нему привязаны поступления на склад",
+        )
 
     db.delete(supplier)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Нельзя удалить поставщика: к нему привязаны связанные записи",
+        )
