@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import { DEFAULT_EMPLOYEE, DEMO_EMPLOYEES, EmployeeRole } from "@/lib/employees";
+import { DEMO_EMPLOYEES, EmployeeRole } from "@/lib/employees";
 
 export interface AuthUser {
   id: string;
@@ -17,14 +17,20 @@ interface AuthContextValue {
 
 const AUTH_STORAGE_KEY = "authUser";
 
-const DEMO_USER: AuthUser = DEFAULT_EMPLOYEE;
+const LOCAL_BYPASS_USER: AuthUser = {
+  id: "local-bypass-user",
+  name: "Локальный пользователь",
+  email: "local@degeshcrm.local",
+  role: "manager",
+  city: "",
+};
 const AUTH_BYPASS_ENABLED = (import.meta.env.VITE_BYPASS_EMPLOYEE_LOGIN ?? "true") === "true";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const readStoredUser = () => {
   if (AUTH_BYPASS_ENABLED) {
-    return DEMO_USER;
+    return LOCAL_BYPASS_USER;
   }
 
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -41,9 +47,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     if (AUTH_BYPASS_ENABLED) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(DEMO_USER));
-      setUser(DEMO_USER);
-      return DEMO_USER;
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(LOCAL_BYPASS_USER));
+      setUser(LOCAL_BYPASS_USER);
+      return LOCAL_BYPASS_USER;
     }
 
     const found = DEMO_EMPLOYEES.find((employee) => employee.email === email && employee.password === password);
@@ -57,8 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     if (AUTH_BYPASS_ENABLED) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(DEMO_USER));
-      setUser(DEMO_USER);
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(LOCAL_BYPASS_USER));
+      setUser(LOCAL_BYPASS_USER);
       return;
     }
 

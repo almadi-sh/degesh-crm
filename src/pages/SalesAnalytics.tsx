@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { useContracts } from "@/hooks/useContracts";
-import { DEMO_EMPLOYEES } from "@/lib/employees";
+import { useEmployees } from "@/hooks/useEmployees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -52,9 +52,10 @@ function getContractTotalAmount(contract: { items?: Array<{ total_amount: number
 
 export default function SalesAnalytics() {
   const { data: contracts = [] } = useContracts();
+  const { data: employees = [] } = useEmployees();
 
   const employeeStats = useMemo<EmployeeStats[]>(() => {
-    return DEMO_EMPLOYEES.map((employee) => {
+    return employees.map((employee) => {
       const ownedContracts = contracts.filter((contract) => contract.owner_employee_id === employee.id);
       const totalAmount = ownedContracts.reduce((sum, contract) => sum + getContractTotalAmount(contract), 0);
       const activeContracts = ownedContracts.filter((contract) => ACTIVE_STATUSES.has(contract.status)).length;
@@ -74,7 +75,7 @@ export default function SalesAnalytics() {
         largestContractAmount,
       };
     }).sort((a, b) => b.revenueTotal - a.revenueTotal);
-  }, [contracts]);
+  }, [contracts, employees]);
 
   const totalRevenue = employeeStats.reduce((sum, stat) => sum + stat.revenueTotal, 0);
   const totalContracts = employeeStats.reduce((sum, stat) => sum + stat.contractsTotal, 0);

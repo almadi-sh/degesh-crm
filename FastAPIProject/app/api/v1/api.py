@@ -8,6 +8,7 @@ from .payment_term import router as payment_terms_router
 from .reservation import router as reservations_router
 from .supplier import router as suppliers_router
 from .supplier_item import router as supplier_items_router
+from .employee import router as employees_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -20,3 +21,4 @@ api_router.include_router(payment_terms_router)
 api_router.include_router(reservations_router)
 api_router.include_router(suppliers_router)
 api_router.include_router(supplier_items_router)
+api_router.include_router(employees_router)

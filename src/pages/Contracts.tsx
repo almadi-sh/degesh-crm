@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, FileText, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmployees } from "@/hooks/useEmployees";
 import { ContractDocumentEditor } from "@/components/contracts/ContractDocumentEditor";
 import { toast } from "sonner";
 import { apiFetchResponse } from "@/lib/apiClient";
@@ -33,6 +34,7 @@ export default function Contracts() {
   const { data: products = [] } = useProducts();
   const { data: contractItems = [] } = useContractItems();
   const { user } = useAuth();
+  const { data: employees = [] } = useEmployees();
   const createContract = useCreateContract();
   const updateContract = useUpdateContract();
   const deleteContract = useDeleteContract();
@@ -53,9 +55,13 @@ export default function Contracts() {
 
   const customersById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients]);
   const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
+  const currentEmployee = useMemo(
+    () => employees.find((employee) => employee.id === user?.id) ?? null,
+    [employees, user?.id],
+  );
 
 const filteredContracts = contracts.filter((contract) => {
-    if (user?.id && contract.owner_employee_id && contract.owner_employee_id !== user.id) return false;
+    if (currentEmployee?.id && contract.owner_employee_id && contract.owner_employee_id !== currentEmployee.id) return false;
     const customerName = customersById.get(contract.customer_id)?.name ?? "";
     return contract.contract_number.toLowerCase().includes(searchQuery.toLowerCase()) || customerName.toLowerCase().includes(searchQuery.toLowerCase());
 });
@@ -192,7 +198,7 @@ const statusLabels: Record<"Draft" | "Confirmed" | "Sent", string> = {
     await createContract.mutateAsync({
       ...formData,
       customer_id: Number(formData.customer_id),
-      owner_employee_id: user?.id ?? null,
+      owner_employee_id: currentEmployee?.id ?? null,
     });
     setIsDialogOpen(false);
     setFormData({ customer_id: 0 });

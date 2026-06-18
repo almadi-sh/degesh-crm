@@ -45,15 +45,15 @@ const FLOW_STEPS: FlowStep[] = [
 
 const getStoredRequests = (): RequestItem[] => {
   if (typeof window === "undefined") {
-    return [{ id: "request-1", title: "Закупить семена рапса", checks: {} }];
+    return [];
   }
   try {
     const raw = localStorage.getItem(REQUESTS_STORAGE_KEY);
-    if (!raw) return [{ id: "request-1", title: "Закупить семена рапса", checks: {} }];
+    if (!raw) return [];
     const parsed = JSON.parse(raw) as RequestItem[];
-    return parsed.length > 0 ? parsed : [{ id: "request-1", title: "Закупить семена рапса", checks: {} }];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return [{ id: "request-1", title: "Закупить семена рапса", checks: {} }];
+    return [];
   }
 };
 
@@ -121,7 +121,7 @@ export default function Requests() {
 
   const removeRequest = (id: string) => {
     const next = requests.filter((request) => request.id !== id);
-    updateRequests(() => next.length > 0 ? next : [{ id: "request-1", title: "Закупить семена рапса", checks: {} }]);
+    updateRequests(() => next);
     if (requestId === id) {
       navigate("/requests");
     }
@@ -144,7 +144,11 @@ export default function Requests() {
               <CardTitle>Список заявок</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {requests.map((request) => (
+              {requests.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+                  Заявок пока нет.
+                </p>
+              ) : requests.map((request) => (
                 <div key={request.id} className="flex items-center gap-2">
                   <button
                     type="button"

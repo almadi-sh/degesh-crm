@@ -17,6 +17,7 @@ import { getSupplierItemWorkflow, setSupplierItemWorkflow } from "@/lib/supplier
 import { formatCreatedAt, getSupplierCreationMeta } from "@/lib/counterpartyMeta";
 import { useCreateSupplier, useDeleteSupplier, useUpdateSupplier } from "@/hooks/useSuppliers";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmployees } from "@/hooks/useEmployees";
 import { Plus } from "lucide-react";
 
 const SUPPLIER_KIND_STORAGE_KEY = "supplierKindMap";
@@ -42,6 +43,7 @@ const getSupplierKindMap = (): Record<string, SupplierKind> => {
 
 export default function SupplierOtherCards() {
   const { user } = useAuth();
+  const { data: employees = [] } = useEmployees();
   const [searchParams] = useSearchParams();
   const pageTitle = "Прочие";
   const pageDescription = "Раздел объединяет список прочих контрагентов и карточки с товарами.";
@@ -94,6 +96,10 @@ export default function SupplierOtherCards() {
   const deleteSupplier = useDeleteSupplier();
   const deleteItem = useDeleteSupplierItem();
   const supplierKinds = getSupplierKindMap();
+  const currentEmployee = useMemo(
+    () => employees.find((employee) => employee.id === user?.id) ?? null,
+    [employees, user?.id],
+  );
 
   const visibleSuppliers = useMemo(
     () => suppliers.filter((item) => (supplierKinds[String(item.id)] ?? "supplier") === "other"),
@@ -150,7 +156,7 @@ export default function SupplierOtherCards() {
       return;
     }
 
-    const creator = user?.name ?? "Неизвестный аккаунт";
+    const creator = currentEmployee?.name ?? null;
     const created = await createSupplier.mutateAsync({
       name: supplierForm.name,
       legal_form: isInternational ? "Международный" : "Внутренний",

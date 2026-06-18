@@ -11,6 +11,7 @@ from app.models.supplier_item import SupplierItem
 from app.schemas.supplier import SupplierCreate, SupplierOut, SupplierUpdate
 
 router = APIRouter(prefix="/suppliers", tags=["Suppliers"])
+LEGACY_SUPPLIER_NAME = "Legacy Supplier"
 
 
 @router.post("/", response_model=SupplierOut)
@@ -36,7 +37,7 @@ def list_suppliers(
     supplier_scope: str | None = Query(default=None),
     product_type: str | None = Query(default=None),
 ):
-    query = db.query(Supplier)
+    query = db.query(Supplier).filter(Supplier.name != LEGACY_SUPPLIER_NAME)
     if name:
         query = query.filter(Supplier.name.ilike(f"%{name}%"))
     if bin_iin:

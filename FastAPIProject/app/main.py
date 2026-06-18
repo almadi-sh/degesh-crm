@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.api.v1.api import api_router
+from app.core.config import SEED_DEMO_EMPLOYEES, SEED_DEMO_INVENTORY
 from app.core.database import Base, SessionLocal, engine
 from app.models.employee import Employee
 from app.models.inventory import Inventory
@@ -115,43 +116,47 @@ SEED_INCOMING = [
     ("HANGZHOU RUIJANG", "Сункар", 25000, False),
 ]
 
+LEGACY_SUPPLIER_NAME = "Legacy Supplier"
+
 
 def seed_initial_data() -> None:
     db: Session = SessionLocal()
     try:
-        for employee_data in SEED_EMPLOYEES:
-            if not db.query(Employee).filter(Employee.id == employee_data["id"]).first():
-                db.add(Employee(**employee_data))
-        db.flush()
+        if SEED_DEMO_EMPLOYEES:
+            for employee_data in SEED_EMPLOYEES:
+                if not db.query(Employee).filter(Employee.id == employee_data["id"]).first():
+                    db.add(Employee(**employee_data))
+            db.flush()
 
-        for supplier, product_name, quantity, needs_enrichment in SEED_INCOMING:
-            composed_name = f"{supplier} | {product_name}"
-            product = db.query(Product).filter(Product.name == composed_name).first()
-            if not product:
-                product = Product(name=composed_name, unit="кг", price=0)
-                db.add(product)
-                db.flush()
+        if SEED_DEMO_INVENTORY:
+            for supplier, product_name, quantity, needs_enrichment in SEED_INCOMING:
+                composed_name = f"{supplier} | {product_name}"
+                product = db.query(Product).filter(Product.name == composed_name).first()
+                if not product:
+                    product = Product(name=composed_name, unit="кг", price=0)
+                    db.add(product)
+                    db.flush()
 
-            inventory = db.query(Inventory).filter(Inventory.product_id == product.id).first()
-            if not inventory:
-                inventory = Inventory(product_id=product.id, quantity_available=quantity, quantity_reserved=0)
-                db.add(inventory)
-                db.flush()
+                inventory = db.query(Inventory).filter(Inventory.product_id == product.id).first()
+                if not inventory:
+                    inventory = Inventory(product_id=product.id, quantity_available=quantity, quantity_reserved=0)
+                    db.add(inventory)
+                    db.flush()
 
-            receipt_exists = (
-                db.query(InventoryReceipt)
-                .filter(InventoryReceipt.product_id == product.id, InventoryReceipt.quantity == quantity)
-                .first()
-            )
-            if not receipt_exists:
-                db.add(
-                    InventoryReceipt(
-                        inventory_id=inventory.id,
-                        product_id=product.id,
-                        quantity=quantity,
-                        needs_enrichment=needs_enrichment,
-                    )
+                receipt_exists = (
+                    db.query(InventoryReceipt)
+                    .filter(InventoryReceipt.product_id == product.id, InventoryReceipt.quantity == quantity)
+                    .first()
                 )
+                if not receipt_exists:
+                    db.add(
+                        InventoryReceipt(
+                            inventory_id=inventory.id,
+                            product_id=product.id,
+                            quantity=quantity,
+                            needs_enrichment=needs_enrichment,
+                        )
+                    )
 
         db.commit()
     finally:
@@ -161,18 +166,13 @@ def seed_initial_data() -> None:
 def backfill_receipt_suppliers() -> None:
     db: Session = SessionLocal()
     try:
-        receipts = db.query(InventoryReceipt).filter(InventoryReceipt.supplier_id.is_(None)).all()
-        for receipt in receipts:
-            legacy_name = (receipt.supplier_name or "").strip()
-            supplier_name = legacy_name or "Legacy Supplier"
-            supplier = db.query(Supplier).filter(Supplier.name == supplier_name).first()
-            if not supplier:
-                supplier = Supplier(name=supplier_name)
-                db.add(supplier)
-                db.flush()
-            receipt.supplier_id = supplier.id
-            if not receipt.supplier_name:
-                receipt.supplier_name = supplier.name
+        legacy_supplier = db.query(Supplier).filter(Supplier.name == LEGACY_SUPPLIER_NAME).first()
+        if legacy_supplier:
+            receipts = db.query(InventoryReceipt).filter(InventoryReceipt.supplier_id == legacy_supplier.id).all()
+            for receipt in receipts:
+                receipt.supplier_id = None
+                if receipt.supplier_name == LEGACY_SUPPLIER_NAME:
+                    receipt.supplier_name = None
         db.commit()
     finally:
         db.close()

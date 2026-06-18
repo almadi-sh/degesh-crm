@@ -34,7 +34,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Pin, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ContractDocumentEditor } from "@/components/contracts/ContractDocumentEditor";
-import { DEMO_EMPLOYEES } from "@/lib/employees";
+import { useEmployees } from "@/hooks/useEmployees";
 import { KZ_CITIES } from "@/lib/referenceData";
 import { setClientCreationMeta } from "@/lib/counterpartyMeta";
 
@@ -99,6 +99,7 @@ const EMPTY_CLIENT: ClientInsert = {
 export default function ClientCards() {
   const { data: clients = [], isLoading } = useClients();
   const { data: products = [] } = useProducts();
+  const { data: employees = [] } = useEmployees();
   const { user } = useAuth();
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
@@ -111,8 +112,12 @@ export default function ClientCards() {
   const [newClientData, setNewClientData] = useState<ClientInsert>(EMPTY_CLIENT);
   const [editClientData, setEditClientData] = useState<ClientInsert>(EMPTY_CLIENT);
 
-  const managers = useMemo(() => DEMO_EMPLOYEES.filter((employee) => employee.role === "manager"), []);
-  const sales = useMemo(() => DEMO_EMPLOYEES.filter((employee) => employee.role === "sales"), []);
+  const managers = useMemo(() => employees.filter((employee) => employee.role === "manager"), [employees]);
+  const sales = useMemo(() => employees.filter((employee) => employee.role === "sales"), [employees]);
+  const currentEmployee = useMemo(
+    () => employees.find((employee) => employee.id === user?.id) ?? null,
+    [employees, user?.id],
+  );
 
   const filtered = useMemo(
     () => clients.filter((item) => [item.name, item.bin_iin, item.city].filter(Boolean).some((v) => v?.toLowerCase().includes(search.toLowerCase()))),
@@ -138,8 +143,8 @@ export default function ClientCards() {
   const { data: contractItems = [] } = useContractItems(activeClient ? { customer_id: activeClient.id } : undefined);
 
   const ownedContracts = useMemo(
-    () => contracts.filter((contract) => !user?.id || !contract.owner_employee_id || contract.owner_employee_id === user.id),
-    [contracts, user?.id],
+    () => contracts.filter((contract) => !currentEmployee?.id || !contract.owner_employee_id || contract.owner_employee_id === currentEmployee.id),
+    [contracts, currentEmployee?.id],
   );
 
   const createContract = useCreateContract();
@@ -372,7 +377,7 @@ export default function ClientCards() {
     await createContract.mutateAsync({
       ...contractFormData,
       customer_id: Number(contractFormData.customer_id),
-      owner_employee_id: user?.id ?? null,
+      owner_employee_id: currentEmployee?.id ?? null,
     });
     setIsCreateContractDialogOpen(false);
   };
@@ -505,12 +510,14 @@ export default function ClientCards() {
 
   const handleCreateClient = async (event: React.FormEvent) => {
     event.preventDefault();
-    const creatorName = user?.name ?? newClientData.created_by_user ?? "Неизвестный аккаунт";
+    const creatorName = newClientData.created_by_user ?? currentEmployee?.name ?? null;
     const created = await createClient.mutateAsync({
       ...newClientData,
       created_by_user: creatorName,
     });
-    setClientCreationMeta(created.id, creatorName);
+    if (creatorName) {
+      setClientCreationMeta(created.id, creatorName);
+    }
     setIsCreateClientDialogOpen(false);
     setNewClientData(EMPTY_CLIENT);
   };

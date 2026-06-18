@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { FileSpreadsheet, Pin, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmployees } from "@/hooks/useEmployees";
 import { apiFetchResponse } from "@/lib/apiClient";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
@@ -64,6 +65,7 @@ export default function ContractItems() {
   const { data: clients = [] } = useClients();
   const { data: products = [] } = useProducts();
   const { user } = useAuth();
+  const { data: employees = [] } = useEmployees();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCustomer, setSelectedCustomer] = useState<number | null>(null);
   const { data: contracts = [] } = useContracts(selectedCustomer ? { customer_id: selectedCustomer } : undefined);
@@ -84,9 +86,13 @@ export default function ContractItems() {
     delivery_terms: "",
   });
   const [editedItems, setEditedItems] = useState<Record<number, EditableItem>>({});
+  const currentEmployee = useMemo(
+    () => employees.find((employee) => employee.id === user?.id) ?? null,
+    [employees, user?.id],
+  );
   const ownedContracts = useMemo(
-    () => contracts.filter((contract) => !user?.id || !contract.owner_employee_id || contract.owner_employee_id === user.id),
-    [contracts, user?.id],
+    () => contracts.filter((contract) => !currentEmployee?.id || !contract.owner_employee_id || contract.owner_employee_id === currentEmployee.id),
+    [contracts, currentEmployee?.id],
   );
   const ownedContractIds = useMemo(() => new Set(ownedContracts.map((contract) => contract.id)), [ownedContracts]);
   const ownedContractItems = useMemo(() => contractItems.filter((item) => ownedContractIds.has(item.contract_id)), [contractItems, ownedContractIds]);

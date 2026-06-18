@@ -11,6 +11,8 @@ load_dotenv(BASE_DIR / ".env")
 load_dotenv(REPO_ROOT / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+SEED_DEMO_EMPLOYEES = os.getenv("SEED_DEMO_EMPLOYEES", "false").lower() in {"1", "true", "yes", "on"}
+SEED_DEMO_INVENTORY = os.getenv("SEED_DEMO_INVENTORY", "false").lower() in {"1", "true", "yes", "on"}
 
 if not DATABASE_URL:
     raise RuntimeError(

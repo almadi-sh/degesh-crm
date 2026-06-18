@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, MapPin, Trash2, BadgeCheck } from "lucide-react";
-import { DEMO_EMPLOYEES } from "@/lib/employees";
+import { useEmployees } from "@/hooks/useEmployees";
 import { KZ_CITIES } from "@/lib/referenceData";
 
 const EMPTY_CLIENT: ClientInsert = {
@@ -36,14 +36,15 @@ const getSignerBasis = (legalForm: string | null | undefined, signerRole: string
 
 export default function Clients() {
   const { data: clients = [], isLoading } = useClients();
+  const { data: employees = [] } = useEmployees();
   const createClient = useCreateClient();
   const deleteClient = useDeleteClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState<ClientInsert>(EMPTY_CLIENT);
 
-  const managers = useMemo(() => DEMO_EMPLOYEES.filter((employee) => employee.role === "manager"), []);
-  const sales = useMemo(() => DEMO_EMPLOYEES.filter((employee) => employee.role === "sales"), []);
+  const managers = useMemo(() => employees.filter((employee) => employee.role === "manager"), [employees]);
+  const sales = useMemo(() => employees.filter((employee) => employee.role === "sales"), [employees]);
 
   const filteredClients = clients.filter((client) =>
     [client.name, client.bin_iin, client.legal_address, client.city, client.created_by_user, client.initial_contact_user]

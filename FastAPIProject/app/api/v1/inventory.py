@@ -24,6 +24,7 @@ from app.schemas.inventory import (
 )
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
+LEGACY_SUPPLIER_NAME = "Legacy Supplier"
 
 
 def _format_contract_number(contract_id: int, contract_date) -> str:
@@ -32,13 +33,25 @@ def _format_contract_number(contract_id: int, contract_date) -> str:
     return f"№{contract_id}-{contract_date:%m-%d}"
 
 
+def _display_supplier_name(joined_supplier_name: str | None, receipt_supplier_name: str | None = None) -> str | None:
+    if joined_supplier_name and joined_supplier_name != LEGACY_SUPPLIER_NAME:
+        return joined_supplier_name
+    if receipt_supplier_name and receipt_supplier_name != LEGACY_SUPPLIER_NAME:
+        return receipt_supplier_name
+    return None
+
+
 @router.post("/receipts", response_model=InventoryReceiptOut)
 def create_receipt(data: InventoryReceiptCreate, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == data.product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    supplier = db.query(Supplier).filter(Supplier.id == data.supplier_id).first()
+    supplier = (
+        db.query(Supplier)
+        .filter(Supplier.id == data.supplier_id, Supplier.name != LEGACY_SUPPLIER_NAME)
+        .first()
+    )
     if not supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
 
@@ -99,7 +112,7 @@ def list_receipts(db: Session = Depends(get_db)):
             quantity=float(receipt.quantity),
             supplier_id=receipt.supplier_id,
             supplier_contract_number=receipt.supplier_contract_number,
-            supplier_name=supplier_name_join or receipt.supplier_name,
+            supplier_name=_display_supplier_name(supplier_name_join, receipt.supplier_name),
             comment=receipt.comment,
             received_at=receipt.received_at,
         )
@@ -218,7 +231,7 @@ def inventory_snapshot(
     if search:
         query = query.filter(
             Product.name.ilike(f"%{search}%")
-            | Supplier.name.ilike(f"%{search}%")
+            | ((Supplier.name != LEGACY_SUPPLIER_NAME) & Supplier.name.ilike(f"%{search}%"))
         )
     if supplier_scope:
         query = query.filter(Supplier.supplier_scope == supplier_scope)
@@ -228,11 +241,12 @@ def inventory_snapshot(
     items: list[InventorySnapshotItem] = []
     for row in query.all():
         balance = float(row.incoming_total) - float(row.reserved_total)
+        supplier_name = _display_supplier_name(row.supplier_name)
         items.append(
             InventorySnapshotItem(
                 product_id=row.product_id,
                 product_name=row.product_name,
-                supplier_name=row.supplier_name or "—",
+                supplier_name=supplier_name or "—",
                 supplier_scope=row.supplier_scope,
                 supplier_product_type=row.supplier_product_type,
                 incoming_total=float(row.incoming_total),

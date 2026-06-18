@@ -295,3 +295,4 @@
 - DB migrations: сначала базовые process/event таблицы, затем inventory/reservations, затем documents/tasks.
 - API contracts: формализовать ответы transition endpoint (`failed_checks`, `required_actions`, `next_possible_states`).
 - Frontend: перейти на чтение server-side workflow state и event-driven задач, убрать критичные решения из local state.
+ 

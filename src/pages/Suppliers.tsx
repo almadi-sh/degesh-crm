@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmployees } from "@/hooks/useEmployees";
 import { KZ_CITIES } from "@/lib/referenceData";
 import { Client, ClientInsert, useClients, useCreateClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
 import { Supplier, SupplierInsert, useCreateSupplier, useDeleteSupplier, useSuppliers, useUpdateSupplier } from "@/hooks/useSuppliers";
@@ -99,6 +100,7 @@ const PAGE_CONTENT: Record<CounterpartyPageMode, { title: string; description: s
 
 export default function Suppliers({ mode }: SuppliersPageProps) {
   const { user } = useAuth();
+  const { data: employees = [] } = useEmployees();
   const navigate = useNavigate();
   const { data: buyers = [] } = useClients();
   const { data: suppliers = [], isLoading } = useSuppliers();
@@ -123,6 +125,10 @@ export default function Suppliers({ mode }: SuppliersPageProps) {
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
 
   const supplierKinds = getSupplierKindMap();
+  const currentEmployee = useMemo(
+    () => employees.find((employee) => employee.id === user?.id) ?? null,
+    [employees, user?.id],
+  );
 
   const filteredBuyers = useMemo(
     () => buyers.filter((item) => [item.name, item.bin_iin, item.city].filter(Boolean).some((v) => v?.toLowerCase().includes(search.toLowerCase()))),
@@ -151,12 +157,14 @@ export default function Suppliers({ mode }: SuppliersPageProps) {
 
   const createBuyer = async (event: React.FormEvent) => {
     event.preventDefault();
-    const creator = user?.name ?? "Неизвестный аккаунт";
+    const creator = currentEmployee?.name ?? null;
     const created = await createClient.mutateAsync({
       ...buyerForm,
       created_by_user: creator,
     });
-    setClientCreationMeta(created.id, creator);
+    if (creator) {
+      setClientCreationMeta(created.id, creator);
+    }
     setBuyerForm(EMPTY_CLIENT_FORM);
     setOpenBuyerDialog(false);
   };
@@ -189,7 +197,7 @@ export default function Suppliers({ mode }: SuppliersPageProps) {
       return;
     }
 
-    const creator = user?.name ?? "Неизвестный аккаунт";
+    const creator = currentEmployee?.name ?? null;
     const payload: SupplierInsert = {
       name: supplierForm.name,
       legal_form: isInternational ? "Международный" : "Внутренний",
@@ -208,7 +216,9 @@ export default function Suppliers({ mode }: SuppliersPageProps) {
     };
 
     const created = await createSupplier.mutateAsync(payload);
-    setSupplierCreationMeta(created.id, creator);
+    if (creator) {
+      setSupplierCreationMeta(created.id, creator);
+    }
     setSupplierKind(created.id, kind);
     setSupplierForm(EMPTY_SUPPLIER_FORM);
     setOpenSupplierDialog(false);

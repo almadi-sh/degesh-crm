@@ -38,10 +38,10 @@ const normalizeClauseBody = (clause: ContractDocumentClause): string[] => {
   return [];
 };
 
-const normalizeDocumentClauses = (clauses: ContractDocumentClause[]) =>
+const normalizeDocumentClauses = (clauses: ContractDocumentClause[]): ContractDocumentClause[] =>
   clauses.map((clause) => ({ ...clause, body: normalizeClauseBody(clause) }));
 
-const cloneClauses = (clauses: ContractDocumentClause[]) =>
+const cloneClauses = (clauses: ContractDocumentClause[]): ContractDocumentClause[] =>
   normalizeDocumentClauses(clauses).map((clause) => ({ ...clause, body: [...(clause.body ?? [])] }));
 
 export function ContractDocumentEditor({
