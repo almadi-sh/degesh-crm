@@ -10,6 +10,9 @@ import {
   Archive,
   BarChart3,
   ClipboardList,
+  ShoppingCart,
+  PhoneCall,
+  Lightbulb,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,6 +38,7 @@ const navigation: NavItem[] = [
       { name: "Покупатели", href: "/client-cards" },
       { name: "Поставщики", href: "/supplier-cards" },
       { name: "Прочие", href: "/supplier-others-cards" },
+      { name: "Карточка клиента", href: "/customer-card" },
     ],
   },
   {
@@ -47,6 +51,9 @@ const navigation: NavItem[] = [
     ],
   },
   { name: "Брони", href: "/reservations", icon: Archive },
+  { name: "Реализации", href: "/realizations", icon: ShoppingCart },
+  { name: "Должники", href: "/debtors", icon: PhoneCall },
+  { name: "Лиды", href: "/leads", icon: Lightbulb },
   { name: "Аналитика продаж", href: "/sales-analytics", icon: BarChart3 },
 ];
 

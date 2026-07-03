@@ -16,6 +16,10 @@ import SupplierCards from "./pages/SupplierCards";
 import SupplierOtherCards from "./pages/SupplierOtherCards";
 import SalesAnalytics from "./pages/SalesAnalytics";
 import InventoryAnalytics from "./pages/InventoryAnalytics";
+import Realizations from "./pages/Realizations";
+import Debtors from "./pages/Debtors";
+import CustomerCard from "./pages/CustomerCard";
+import Leads from "./pages/Leads";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import { AuthProvider } from "./hooks/useAuth";
@@ -48,6 +52,10 @@ const App = () => (
               <Route path="/counterparties/buyers" element={<Navigate to="/client-cards" replace />} />
               <Route path="/counterparties/suppliers" element={<Navigate to="/supplier-cards" replace />} />
               <Route path="/counterparties/others" element={<Navigate to="/supplier-others-cards" replace />} />
+              <Route path="/realizations" element={<Realizations />} />
+              <Route path="/debtors" element={<Debtors />} />
+              <Route path="/customer-card" element={<CustomerCard />} />
+              <Route path="/leads" element={<Leads />} />
               <Route path="/sales-analytics" element={<SalesAnalytics />} />
               <Route path="/inventory-analytics" element={<InventoryAnalytics />} />
               <Route path="*" element={<NotFound />} />
