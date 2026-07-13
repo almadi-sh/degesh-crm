@@ -1,0 +1,2793 @@
+{
+  "author": "Codex",
+  "project": "DeGesh CRM",
+  "title": "DeGesh CRM PostgreSQL ER schema",
+  "date": "2026-07-08",
+  "database": "postgresql",
+  "tables": [
+    {
+      "id": 1,
+      "name": "employees",
+      "x": 40,
+      "y": 40,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 1,
+          "name": "name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 2,
+          "name": "email",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": true,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "role",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 4,
+          "name": "city",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Employee (employee.py)",
+      "indices": [],
+      "uniqueConstraints": [
+        {
+          "name": "uq_employees_email",
+          "fields": [
+            "email"
+          ]
+        }
+      ],
+      "color": "#2563eb"
+    },
+    {
+      "id": 2,
+      "name": "customers",
+      "x": 40,
+      "y": 420,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 2,
+          "name": "legal_form",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "contract_signer_full_name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 4,
+          "name": "contract_signer_role",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 5,
+          "name": "contract_signer_basis",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 6,
+          "name": "bin_iin",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": true,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 7,
+          "name": "city",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 8,
+          "name": "legal_address",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 9,
+          "name": "address",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 10,
+          "name": "tax_regime",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 11,
+          "name": "created_by_user",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 12,
+          "name": "initial_contact_user",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Customer (customer.py)",
+      "indices": [
+        {
+          "name": "ix_customers_bin_iin",
+          "unique": true,
+          "fields": [
+            "bin_iin"
+          ]
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "name": "uq_customers_bin_iin",
+          "fields": [
+            "bin_iin"
+          ]
+        }
+      ],
+      "color": "#16a34a"
+    },
+    {
+      "id": 3,
+      "name": "suppliers",
+      "x": 40,
+      "y": 800,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 2,
+          "name": "legal_form",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "supplier_scope",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 4,
+          "name": "product_type",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 5,
+          "name": "bin_iin",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": true,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 6,
+          "name": "city",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 7,
+          "name": "legal_address",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 8,
+          "name": "contact_person",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 9,
+          "name": "phone",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 10,
+          "name": "email",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 11,
+          "name": "payment_terms",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 12,
+          "name": "notes",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 13,
+          "name": "created_by_user",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Supplier (supplier.py)",
+      "indices": [
+        {
+          "name": "ix_suppliers_bin_iin",
+          "unique": true,
+          "fields": [
+            "bin_iin"
+          ]
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "name": "uq_suppliers_bin_iin",
+          "fields": [
+            "bin_iin"
+          ]
+        }
+      ],
+      "color": "#f59e0b"
+    },
+    {
+      "id": 4,
+      "name": "products",
+      "x": 40,
+      "y": 1180,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 2,
+          "name": "unit",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "например \"л\" или \"кг\"",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "price",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Product (product.py)",
+      "indices": [],
+      "uniqueConstraints": [],
+      "color": "#dc2626"
+    },
+    {
+      "id": 5,
+      "name": "counterparties",
+      "x": 40,
+      "y": 1510,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 2,
+          "name": "bin_iin",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": true,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "address",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 4,
+          "name": "phone",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Counterparty (counterparty.py)",
+      "indices": [
+        {
+          "name": "ix_counterparties_bin_iin",
+          "unique": true,
+          "fields": [
+            "bin_iin"
+          ]
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "name": "uq_counterparties_bin_iin",
+          "fields": [
+            "bin_iin"
+          ]
+        }
+      ],
+      "color": "#7c3aed"
+    },
+    {
+      "id": 6,
+      "name": "contracts",
+      "x": 390,
+      "y": 260,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "customer_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> customers.id"
+        },
+        {
+          "id": 2,
+          "name": "owner_employee_id",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "FK -> employees.id",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "contract_date",
+          "type": "DATE",
+          "default": "date.today",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 4,
+          "name": "status",
+          "type": "VARCHAR",
+          "default": "Draft",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 5,
+          "name": "last_modified_at",
+          "type": "TIMESTAMP",
+          "default": "now()",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 6,
+          "name": "contract_document",
+          "type": "JSONB",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Contract (contract.py)",
+      "indices": [],
+      "uniqueConstraints": [],
+      "color": "#0891b2"
+    },
+    {
+      "id": 7,
+      "name": "contract_items",
+      "x": 740,
+      "y": 260,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "contract_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> contracts.id"
+        },
+        {
+          "id": 2,
+          "name": "product_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> products.id"
+        },
+        {
+          "id": 3,
+          "name": "quantity",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 4,
+          "name": "price",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 5,
+          "name": "total_amount",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 6,
+          "name": "vat_enabled",
+          "type": "BOOLEAN",
+          "default": false,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 7,
+          "name": "delivery_enabled",
+          "type": "BOOLEAN",
+          "default": false,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 8,
+          "name": "delivery_terms",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 9,
+          "name": "appendix_number",
+          "type": "INTEGER",
+          "default": 1,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        }
+      ],
+      "comment": "SQLAlchemy model ContractItem (contract_item.py)",
+      "indices": [],
+      "uniqueConstraints": [],
+      "color": "#db2777"
+    },
+    {
+      "id": 8,
+      "name": "payment_terms",
+      "x": 1090,
+      "y": 120,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "contract_item_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> contract_items.id"
+        },
+        {
+          "id": 2,
+          "name": "percent",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 3,
+          "name": "amount",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 4,
+          "name": "due_date",
+          "type": "DATE",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        }
+      ],
+      "comment": "SQLAlchemy model PaymentTerm (payment_term.py)",
+      "indices": [],
+      "uniqueConstraints": [],
+      "color": "#65a30d"
+    },
+    {
+      "id": 9,
+      "name": "reservations",
+      "x": 1090,
+      "y": 500,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "inventory_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "FK -> inventory.id"
+        },
+        {
+          "id": 2,
+          "name": "product_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> products.id"
+        },
+        {
+          "id": 3,
+          "name": "contract_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> contracts.id"
+        },
+        {
+          "id": 4,
+          "name": "contract_item_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": true,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> contract_items.id"
+        },
+        {
+          "id": 5,
+          "name": "employee_id",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "FK -> employees.id",
+          "size": ""
+        },
+        {
+          "id": 6,
+          "name": "customer_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> customers.id"
+        },
+        {
+          "id": 7,
+          "name": "quantity",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 8,
+          "name": "priority",
+          "type": "INTEGER",
+          "default": 100,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 9,
+          "name": "delivery_due_date",
+          "type": "DATE",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 10,
+          "name": "status",
+          "type": "VARCHAR",
+          "default": "active",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 11,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "now()",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 12,
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "default": "now()",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Reservation (reservation.py)",
+      "indices": [],
+      "uniqueConstraints": [
+        {
+          "name": "uq_reservations_contract_item_id",
+          "fields": [
+            "contract_item_id"
+          ]
+        }
+      ],
+      "color": "#9333ea"
+    },
+    {
+      "id": 10,
+      "name": "inventory",
+      "x": 390,
+      "y": 1060,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "product_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> products.id"
+        },
+        {
+          "id": 2,
+          "name": "quantity_available",
+          "type": "DOUBLE PRECISION",
+          "default": 0,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 3,
+          "name": "quantity_reserved",
+          "type": "DOUBLE PRECISION",
+          "default": 0,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Inventory (inventory.py)",
+      "indices": [],
+      "uniqueConstraints": [],
+      "color": "#0f766e"
+    },
+    {
+      "id": 11,
+      "name": "inventory_receipts",
+      "x": 740,
+      "y": 900,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "inventory_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> inventory.id"
+        },
+        {
+          "id": 2,
+          "name": "product_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> products.id"
+        },
+        {
+          "id": 3,
+          "name": "quantity",
+          "type": "DOUBLE PRECISION",
+          "default": 0,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 4,
+          "name": "needs_enrichment",
+          "type": "BOOLEAN",
+          "default": false,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 5,
+          "name": "supplier_contract_number",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 6,
+          "name": "supplier_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "FK -> suppliers.id"
+        },
+        {
+          "id": 7,
+          "name": "supplier_name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 8,
+          "name": "comment",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 9,
+          "name": "received_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "default": "now()",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        }
+      ],
+      "comment": "SQLAlchemy model InventoryReceipt (inventory_receipt.py)",
+      "indices": [
+        {
+          "name": "ix_inventory_receipts_supplier_id",
+          "unique": false,
+          "fields": [
+            "supplier_id"
+          ]
+        }
+      ],
+      "uniqueConstraints": [],
+      "color": "#b45309"
+    },
+    {
+      "id": 12,
+      "name": "supplier_items",
+      "x": 390,
+      "y": 1340,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "supplier_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> suppliers.id"
+        },
+        {
+          "id": 2,
+          "name": "name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "quantity_available",
+          "type": "DOUBLE PRECISION",
+          "default": 0,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 4,
+          "name": "purchase_price",
+          "type": "DOUBLE PRECISION",
+          "default": 0,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 5,
+          "name": "item_type",
+          "type": "SupplierItemType",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "values": [
+            "service",
+            "seeds",
+            "pesticide",
+            "fertilizer"
+          ]
+        },
+        {
+          "id": 6,
+          "name": "unit",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 7,
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "default": true,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        }
+      ],
+      "comment": "SQLAlchemy model SupplierItem (supplier_item.py)",
+      "indices": [
+        {
+          "name": "ix_supplier_items_supplier_id",
+          "unique": false,
+          "fields": [
+            "supplier_id"
+          ]
+        }
+      ],
+      "uniqueConstraints": [],
+      "color": "#4f46e5"
+    },
+    {
+      "id": 13,
+      "name": "warehouse_stock",
+      "x": 740,
+      "y": 1240,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "warehouse",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 2,
+          "name": "product_name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "quantity",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 4,
+          "name": "unit",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 5,
+          "name": "note",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        }
+      ],
+      "comment": "SQLAlchemy model WarehouseStock (warehouse_stock.py)",
+      "indices": [
+        {
+          "name": "ix_warehouse_stock_warehouse",
+          "unique": false,
+          "fields": [
+            "warehouse"
+          ]
+        },
+        {
+          "name": "ix_warehouse_stock_product_name",
+          "unique": false,
+          "fields": [
+            "product_name"
+          ]
+        }
+      ],
+      "uniqueConstraints": [],
+      "color": "#be123c"
+    },
+    {
+      "id": 14,
+      "name": "realizations",
+      "x": 1090,
+      "y": 900,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "document",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 2,
+          "name": "realization_date",
+          "type": "TIMESTAMP",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 3,
+          "name": "date_raw",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 4,
+          "name": "year",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 5,
+          "name": "year_month",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "e.g. \"2026-06\"",
+          "size": ""
+        },
+        {
+          "id": 6,
+          "name": "counterparty",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 7,
+          "name": "contract_ref",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 8,
+          "name": "bin_iin",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 9,
+          "name": "nomenclature",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "raw item name from 1C",
+          "size": ""
+        },
+        {
+          "id": 10,
+          "name": "product_name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "normalized/final name",
+          "size": ""
+        },
+        {
+          "id": 11,
+          "name": "category",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 12,
+          "name": "active_substance",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 13,
+          "name": "unit",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 14,
+          "name": "quantity",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 15,
+          "name": "price",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 16,
+          "name": "amount_with_vat",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 17,
+          "name": "vat_amount",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 18,
+          "name": "vat_rate",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 19,
+          "name": "confidence",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Realization (realization.py)",
+      "indices": [
+        {
+          "name": "ix_realizations_realization_date",
+          "unique": false,
+          "fields": [
+            "realization_date"
+          ]
+        },
+        {
+          "name": "ix_realizations_year",
+          "unique": false,
+          "fields": [
+            "year"
+          ]
+        },
+        {
+          "name": "ix_realizations_year_month",
+          "unique": false,
+          "fields": [
+            "year_month"
+          ]
+        },
+        {
+          "name": "ix_realizations_counterparty",
+          "unique": false,
+          "fields": [
+            "counterparty"
+          ]
+        },
+        {
+          "name": "ix_realizations_bin_iin",
+          "unique": false,
+          "fields": [
+            "bin_iin"
+          ]
+        },
+        {
+          "name": "ix_realizations_product_name",
+          "unique": false,
+          "fields": [
+            "product_name"
+          ]
+        },
+        {
+          "name": "ix_realizations_category",
+          "unique": false,
+          "fields": [
+            "category"
+          ]
+        }
+      ],
+      "uniqueConstraints": [],
+      "color": "#15803d"
+    },
+    {
+      "id": 15,
+      "name": "debts",
+      "x": 1090,
+      "y": 1240,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "bin_iin",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 2,
+          "name": "company_name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "contract_name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 4,
+          "name": "turnover_debit",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 5,
+          "name": "turnover_credit",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 6,
+          "name": "debt_amount",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 7,
+          "name": "report_date",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Debt (debt.py)",
+      "indices": [
+        {
+          "name": "ix_debts_bin_iin",
+          "unique": false,
+          "fields": [
+            "bin_iin"
+          ]
+        },
+        {
+          "name": "ix_debts_company_name",
+          "unique": false,
+          "fields": [
+            "company_name"
+          ]
+        },
+        {
+          "name": "ix_debts_debt_amount",
+          "unique": false,
+          "fields": [
+            "debt_amount"
+          ]
+        }
+      ],
+      "uniqueConstraints": [],
+      "color": "#0369a1"
+    },
+    {
+      "id": 16,
+      "name": "ext_contracts",
+      "x": 1450,
+      "y": 120,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "folder_name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": true,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 2,
+          "name": "number",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "date",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 4,
+          "name": "buyer_name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 5,
+          "name": "supplier_name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 6,
+          "name": "contract_total",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 7,
+          "name": "currency",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 8,
+          "name": "client_bin",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "matched counterparty BIN",
+          "size": ""
+        },
+        {
+          "id": 9,
+          "name": "manager",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 10,
+          "name": "cancelled",
+          "type": "INTEGER",
+          "default": 0,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 11,
+          "name": "summary_for_manager",
+          "type": "TEXT",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        }
+      ],
+      "comment": "SQLAlchemy model ExtContract (contract_ext.py)",
+      "indices": [
+        {
+          "name": "ix_ext_contracts_folder_name",
+          "unique": true,
+          "fields": [
+            "folder_name"
+          ]
+        },
+        {
+          "name": "ix_ext_contracts_number",
+          "unique": false,
+          "fields": [
+            "number"
+          ]
+        },
+        {
+          "name": "ix_ext_contracts_client_bin",
+          "unique": false,
+          "fields": [
+            "client_bin"
+          ]
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "name": "uq_ext_contracts_folder_name",
+          "fields": [
+            "folder_name"
+          ]
+        }
+      ],
+      "color": "#a16207"
+    },
+    {
+      "id": 17,
+      "name": "ext_appendices",
+      "x": 1800,
+      "y": 120,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "contract_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> ext_contracts.id"
+        },
+        {
+          "id": 2,
+          "name": "appendix_number",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "appendix_date",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 4,
+          "name": "source_file",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 5,
+          "name": "stated_total",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 6,
+          "name": "payment_schedule",
+          "type": "JSONB",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 7,
+          "name": "delivery_terms",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 8,
+          "name": "position",
+          "type": "INTEGER",
+          "default": 0,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "order within contract"
+        }
+      ],
+      "comment": "SQLAlchemy model ExtAppendix (contract_ext.py)",
+      "indices": [
+        {
+          "name": "ix_ext_appendices_contract_id",
+          "unique": false,
+          "fields": [
+            "contract_id"
+          ]
+        }
+      ],
+      "uniqueConstraints": [],
+      "color": "#6d28d9"
+    },
+    {
+      "id": 18,
+      "name": "ext_appendix_items",
+      "x": 2150,
+      "y": 120,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "appendix_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> ext_appendices.id"
+        },
+        {
+          "id": 2,
+          "name": "name",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "category",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 4,
+          "name": "quantity",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 5,
+          "name": "unit",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 6,
+          "name": "unit_price",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 7,
+          "name": "total",
+          "type": "DOUBLE PRECISION",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 8,
+          "name": "delivery_date",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        }
+      ],
+      "comment": "SQLAlchemy model ExtAppendixItem (contract_ext.py)",
+      "indices": [
+        {
+          "name": "ix_ext_appendix_items_appendix_id",
+          "unique": false,
+          "fields": [
+            "appendix_id"
+          ]
+        }
+      ],
+      "uniqueConstraints": [],
+      "color": "#047857"
+    },
+    {
+      "id": 19,
+      "name": "shipments",
+      "x": 2500,
+      "y": 120,
+      "fields": [
+        {
+          "id": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": true,
+          "unique": true,
+          "notNull": true,
+          "increment": true,
+          "comment": ""
+        },
+        {
+          "id": 1,
+          "name": "appendix_item_id",
+          "type": "INTEGER",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": "FK -> ext_appendix_items.id"
+        },
+        {
+          "id": 2,
+          "name": "warehouse",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        },
+        {
+          "id": 3,
+          "name": "quantity",
+          "type": "DOUBLE PRECISION",
+          "default": 0,
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": true,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 4,
+          "name": "shipped_at",
+          "type": "TIMESTAMP",
+          "default": "datetime.utcnow",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": ""
+        },
+        {
+          "id": 5,
+          "name": "note",
+          "type": "VARCHAR",
+          "default": "",
+          "check": "",
+          "primary": false,
+          "unique": false,
+          "notNull": false,
+          "increment": false,
+          "comment": "",
+          "size": ""
+        }
+      ],
+      "comment": "SQLAlchemy model Shipment (contract_ext.py)",
+      "indices": [
+        {
+          "name": "ix_shipments_appendix_item_id",
+          "unique": false,
+          "fields": [
+            "appendix_item_id"
+          ]
+        }
+      ],
+      "uniqueConstraints": [],
+      "color": "#334155"
+    }
+  ],
+  "relationships": [
+    {
+      "id": 1,
+      "startTableId": 6,
+      "startFieldId": 1,
+      "endTableId": 2,
+      "endFieldId": 0,
+      "name": "contracts_customer_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 2,
+      "startTableId": 6,
+      "startFieldId": 2,
+      "endTableId": 1,
+      "endFieldId": 0,
+      "name": "contracts_owner_employee_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 3,
+      "startTableId": 7,
+      "startFieldId": 1,
+      "endTableId": 6,
+      "endFieldId": 0,
+      "name": "contract_items_contract_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 4,
+      "startTableId": 7,
+      "startFieldId": 2,
+      "endTableId": 4,
+      "endFieldId": 0,
+      "name": "contract_items_product_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 5,
+      "startTableId": 8,
+      "startFieldId": 1,
+      "endTableId": 7,
+      "endFieldId": 0,
+      "name": "payment_terms_contract_item_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 6,
+      "startTableId": 9,
+      "startFieldId": 1,
+      "endTableId": 10,
+      "endFieldId": 0,
+      "name": "reservations_inventory_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 7,
+      "startTableId": 9,
+      "startFieldId": 2,
+      "endTableId": 4,
+      "endFieldId": 0,
+      "name": "reservations_product_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 8,
+      "startTableId": 9,
+      "startFieldId": 3,
+      "endTableId": 6,
+      "endFieldId": 0,
+      "name": "reservations_contract_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 9,
+      "startTableId": 9,
+      "startFieldId": 4,
+      "endTableId": 7,
+      "endFieldId": 0,
+      "name": "reservations_contract_item_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 10,
+      "startTableId": 9,
+      "startFieldId": 5,
+      "endTableId": 1,
+      "endFieldId": 0,
+      "name": "reservations_employee_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 11,
+      "startTableId": 9,
+      "startFieldId": 6,
+      "endTableId": 2,
+      "endFieldId": 0,
+      "name": "reservations_customer_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 12,
+      "startTableId": 10,
+      "startFieldId": 1,
+      "endTableId": 4,
+      "endFieldId": 0,
+      "name": "inventory_product_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 13,
+      "startTableId": 11,
+      "startFieldId": 1,
+      "endTableId": 10,
+      "endFieldId": 0,
+      "name": "inventory_receipts_inventory_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 14,
+      "startTableId": 11,
+      "startFieldId": 2,
+      "endTableId": 4,
+      "endFieldId": 0,
+      "name": "inventory_receipts_product_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 15,
+      "startTableId": 11,
+      "startFieldId": 6,
+      "endTableId": 3,
+      "endFieldId": 0,
+      "name": "inventory_receipts_supplier_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 16,
+      "startTableId": 12,
+      "startFieldId": 1,
+      "endTableId": 3,
+      "endFieldId": 0,
+      "name": "supplier_items_supplier_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 17,
+      "startTableId": 17,
+      "startFieldId": 1,
+      "endTableId": 16,
+      "endFieldId": 0,
+      "name": "ext_appendices_contract_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 18,
+      "startTableId": 18,
+      "startFieldId": 1,
+      "endTableId": 17,
+      "endFieldId": 0,
+      "name": "ext_appendix_items_appendix_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    },
+    {
+      "id": 19,
+      "startTableId": 19,
+      "startFieldId": 1,
+      "endTableId": 18,
+      "endFieldId": 0,
+      "name": "shipments_appendix_item_id_fk",
+      "cardinality": "many_to_one",
+      "updateConstraint": "No action",
+      "deleteConstraint": "No action"
+    }
+  ],
+  "notes": [
+    {
+      "id": 1,
+      "x": 1450,
+      "y": 640,
+      "title": "???????? ?????",
+      "content": "????????????? ?? SQLAlchemy-??????? FastAPIProject/app/models. PostgreSQL: docker-compose ?????????? postgres:15, ???? crm_db.",
+      "color": "#fcf7ac",
+      "height": 120,
+      "width": 280
+    }
+  ],
+  "subjectAreas": [],
+  "types": [],
+  "enums": [
+    {
+      "name": "SupplierItemType",
+      "values": [
+        "service",
+        "seeds",
+        "pesticide",
+        "fertilizer"
+      ]
+    }
+  ]
+}
